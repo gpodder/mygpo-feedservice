@@ -1,0 +1,23 @@
+
+
+  gpodder.net Feed-Server (mygpo-feedservice)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+mygpo-feedservice is a webservice that parses podcast feeds and returns
+simplified contents as JSON. It is intended to run within a Google AppEngine.
+
+To run it locally for testing and development, either point the APPENGINE_SDK
+variable in makefile to an unpacked Google App Engine SDK for Python, which can
+be downloaded from
+
+ http://googleappengine.googlecode.com/files/google_appengine_1.4.0.zip
+
+Afterwards `make runserver` should start the development server.
+
+
+An instance of mygpo-feedservice should be running at
+
+ http://mygpo-feedservice.appspot.com/
+
+If you intend to use it for anything serious, please contact stefan@skoegl.net beforehand.
+
