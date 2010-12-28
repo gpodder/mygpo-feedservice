@@ -12,10 +12,10 @@ class MainPage(webapp.RequestHandler):
 class Parse(webapp.RequestHandler):
     def get(self):
         self.response.headers['Content-Type'] = 'text/plain'
-        url = self.request.get('url')
-        if url:
-            podcast = feeddownloader.parse_feed(url)
-            pretty = json.dumps(podcast, sort_keys=True, indent=4)
+        urls = self.request.get_all('url')
+        if urls:
+            podcasts = map(feeddownloader.parse_feed, urls)
+            pretty = json.dumps(podcasts, sort_keys=True, indent=4)
             self.response.out.write(pretty)
         else:
             self.response.set_status(400)
