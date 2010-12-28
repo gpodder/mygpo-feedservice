@@ -12,9 +12,16 @@
   returning the simplified contents as JSON.</p>
 
   <h2>Usage</h2>
+  <p>Parameters to /parse
+   <ul>
+    <li><strong>url</strong>: The URL of the feed that should be parsed (required)</li>
+    <li><strong>inline_logo</strong>: If set to 1, the (unscaled) logos are included in the response as <a href="http://en.wikipedia.org/wiki/Data_URI_scheme">data URIs</a> (default 0).</li>
+   </ul>
+  </p>
+
   <p>Examples:
    <pre><strong>
-    <a href="/parse?url=http://feeds.feedburner.com/linuxoutlaws">GET /parse?url=http://feeds.feedburner.com/linuxoutlaws</a>
+    <a href="/parse?url=http://feeds.feedburner.com/linuxoutlaws&inline_logo=1">GET /parse?url=http://feeds.feedburner.com/linuxoutlaws&inline_logo=1</a>
     <a href="/parse?url=http://leo.am/podcasts/floss&url=http://feeds.twit.tv/floss_video_large">GET /parse?url=http://leo.am/podcasts/floss&url=http://feeds.twit.tv/floss_video_large</a>
    </strong></pre>
   </p>

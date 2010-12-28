@@ -25,6 +25,7 @@ import sys
 import datetime
 import hashlib
 import urllib2
+import base64
 #import socket
 
 import feedcore
@@ -133,7 +134,7 @@ def get_episode_metadata(entry, files):
     return d
 
 
-def parse_feed(feed_url):
+def parse_feed(feed_url, inline_logo):
     try:
         fetcher.fetch(feed_url)
 
@@ -152,7 +153,11 @@ def parse_feed(feed_url):
         podcast['author'] = feed.feed.get('author', feed.feed.get('itunes_author', ''))
         podcast['language'] = feed.feed.get('language', '')
 
-        podcast['logo'] = get_podcast_logo(feed)
+        logo_url = get_podcast_logo(feed)
+        podcast['logo'] = logo_url
+        if inline_logo and logo_url:
+            podcast['logo_data'] = get_data_uri(logo_url)
+
         #update_feed_tags(podcast, get_feed_tags(feed.feed))
 
         podcast['episodes'] = []
@@ -186,3 +191,9 @@ def get_podcast_logo(feed):
         cover_art = yturl
 
     return cover_art
+
+def get_data_uri(url):
+    content = urllib2.urlopen(url).read()
+    mimetype = get_mimetype(None, url)
+    encoded = base64.b64encode(content)
+    return 'data:%s;base64,%s' % (mimetype, encoded)
