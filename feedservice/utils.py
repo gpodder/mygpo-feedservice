@@ -15,6 +15,8 @@
 # along with my.gpodder.org. If not, see <http://www.gnu.org/licenses/>.
 #
 
+import time
+
 def parse_time(value):
     """
     >>> parse_time(10)
