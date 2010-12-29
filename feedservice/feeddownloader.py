@@ -28,6 +28,9 @@ import urllib2
 import base64
 #import socket
 
+from google.appengine.api import images
+
+
 import feedcore
 from utils import parse_time
 import youtube
@@ -134,7 +137,7 @@ def get_episode_metadata(entry, files):
     return d
 
 
-def parse_feed(feed_url, inline_logo):
+def parse_feed(feed_url, inline_logo, scale_to):
     try:
         fetcher.fetch(feed_url)
 
@@ -156,7 +159,7 @@ def parse_feed(feed_url, inline_logo):
         logo_url = get_podcast_logo(feed)
         podcast['logo'] = logo_url
         if inline_logo and logo_url:
-            podcast['logo_data'] = get_data_uri(logo_url)
+            podcast['logo_data'] = get_data_uri(logo_url, scale_to)
 
         #update_feed_tags(podcast, get_feed_tags(feed.feed))
 
@@ -192,8 +195,13 @@ def get_podcast_logo(feed):
 
     return cover_art
 
-def get_data_uri(url):
+
+def get_data_uri(url, size=None):
     content = urllib2.urlopen(url).read()
+
+    if size:
+        content = images.resize(content, size, size)
+
     mimetype = get_mimetype(None, url)
     encoded = base64.b64encode(content)
     return 'data:%s;base64,%s' % (mimetype, encoded)
