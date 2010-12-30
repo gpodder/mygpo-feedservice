@@ -1,6 +1,7 @@
 from google.appengine.ext import webapp
 from google.appengine.ext.webapp.util import run_wsgi_app
 
+import urllib
 import feeddownloader
 import simplejson as json
 
@@ -10,9 +11,14 @@ class MainPage(webapp.RequestHandler):
         self.response.out.write('Hello, webapp World!')
 
 class Parse(webapp.RequestHandler):
+
+    def post(self):
+        return self.get()
+
     def get(self):
         self.response.headers['Content-Type'] = 'text/plain'
         urls = self.request.get_all('url')
+        urls = map(urllib.unquote, urls)
         inline_logo = self.get_int('inline_logo')
         scale_to = self.get_int('scale_logo', None)
 

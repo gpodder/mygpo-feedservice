@@ -12,9 +12,9 @@
   returning the simplified contents as JSON.</p>
 
   <h2>Usage</h2>
-  <p>Parameters to /parse
+  <p>Parameters to /parse (either GET or POST)
    <ul>
-    <li><strong>url</strong>: The URL of the feed that should be parsed (required)</li>
+    <li><strong>url</strong>: The URL of the feed that should be parsed (required). This parameter can be repeated multiple times. The values can be URL-encoded.</li>
     <li><strong>inline_logo</strong>: If set to 1, the (unscaled) logos are included in the response as <a href="http://en.wikipedia.org/wiki/Data_URI_scheme">data URIs</a> (default 0).</li>
     <li><strong>scale_logo</strong>: If inline_logo is set to 1, scales the included logo to the given size. The resulting images is fitted into a square with the given side-length.</li>
    </ul>
@@ -22,8 +22,9 @@
 
   <p>Examples:
    <pre>
-    <a href="/parse?url=http://feeds.feedburner.com/linuxoutlaws&inline_logo=1&scale_logo=30">GET /parse?<strong>url</strong>=http://feeds.feedburner.com/linuxoutlaws&<strong>inline_logo</strong>=1&<strong>scale_logo</strong>=30</a>
-    <a href="/parse?url=http://leo.am/podcasts/floss&url=http://feeds.twit.tv/floss_video_large">GET /parse?<strong>url</strong>=http://leo.am/podcasts/floss&<strong>url</strong>=http://feeds.twit.tv/floss_video_large</a>
+    <a href="/parse?url=http://feeds.feedburner.com/linuxoutlaws&inline_logo=1&scale_logo=30">curl http://mygpo-feedservice.appspot.com/parse?<strong>url</strong>=http://feeds.feedburner.com/linuxoutlaws&<strong>inline_logo</strong>=1&<strong>scale_logo</strong>=30</a>
+    <a href="/parse?url=http://leo.am/podcasts/floss&url=http://feeds.twit.tv/floss_video_large">curl http://mygpo-feedservice.appspot.com/parse?<strong>url</strong>=http://leo.am/podcasts/floss&<strong>url</strong>=http://feeds.twit.tv/floss_video_large</a>
+    curl -d url=http://feeds.feedburner.com/linuxoutlaws http://mygpo-feedservice.appspot.com/parse
    </pre>
   </p>
 
