@@ -200,7 +200,8 @@ def get_data_uri(url, size=None):
     content = urllib2.urlopen(url).read()
 
     if size:
-        content = images.resize(content, size, size)
+        img = images.Image(content)
+        content = images.resize(content, min(size, img.width), min(size, img.height))
 
     mimetype = get_mimetype(None, url)
     encoded = base64.b64encode(content)
