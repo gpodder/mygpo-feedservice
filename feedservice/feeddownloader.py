@@ -35,6 +35,7 @@ import feedcore
 from utils import parse_time
 import youtube
 from mimetype import get_mimetype, check_mimetype, get_podcast_types
+from urls import get_redirects
 
 #socket.setdefaulttimeout(10)
 fetcher = feedcore.Fetcher(USER_AGENT)
@@ -155,6 +156,7 @@ def parse_feed(feed_url, inline_logo, scale_to):
         podcast['description'] = feed.feed.get('subtitle', '')
         podcast['author'] = feed.feed.get('author', feed.feed.get('itunes_author', ''))
         podcast['language'] = feed.feed.get('language', '')
+        podcast['urls'] = get_redirects(feed_url)
 
         logo_url = get_podcast_logo(feed)
         podcast['logo'] = logo_url
