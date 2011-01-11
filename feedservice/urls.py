@@ -18,7 +18,14 @@ def get_redirects(url):
     collector.urls.append(url)
     opener = urllib2.build_opener(collector)
     opener.open(url)
-    return map(basic_sanitizing, collector.urls)
+    urls = map(basic_sanitizing, collector.urls)
+
+    # include un-sanitized URL for easy matching of
+    #response to request URLs
+    if urls[0] != url:
+        urls = [url] + urls
+
+    return urls
 
 
 def basic_sanitizing(url):
