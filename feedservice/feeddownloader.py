@@ -138,6 +138,24 @@ def get_episode_metadata(entry, files):
     return d
 
 
+def parse_feeds(feed_urls, *args, **kwargs):
+    visited_urls = set()
+    result = []
+
+    for url in feed_urls:
+        res, visited, new = parse_feed(url, *args, **kwargs)
+
+        visited_urls.update(visited)
+
+        # we follow RSS-redirects automatically
+        if new and new not in (list(visited_urls) + feed_urls):
+            feed_urls.append(new)
+
+        result.append(res)
+
+    return result
+
+
 def parse_feed(feed_url, inline_logo, scale_to):
     try:
         fetcher.fetch(feed_url)
@@ -156,7 +174,15 @@ def parse_feed(feed_url, inline_logo, scale_to):
         podcast['description'] = feed.feed.get('subtitle', '')
         podcast['author'] = feed.feed.get('author', feed.feed.get('itunes_author', ''))
         podcast['language'] = feed.feed.get('language', '')
-        podcast['urls'] = get_redirects(feed_url)
+
+        urls = get_redirects(feed_url)
+        podcast['urls'] = urls
+
+        if 'newlocation' in feed.feed:
+            new_location = feed.feed.newlocation
+            podcast['new_location'] = new_location
+        else:
+            new_location = ''
 
         logo_url = get_podcast_logo(feed)
         podcast['logo'] = logo_url
@@ -179,7 +205,7 @@ def parse_feed(feed_url, inline_logo, scale_to):
     except Exception, e:
         print >>sys.stderr, 'Exception:', e
 
-    return podcast
+    return podcast, urls, new_location
 
 
 def get_podcast_logo(feed):

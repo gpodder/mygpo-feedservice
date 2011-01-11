@@ -23,7 +23,7 @@ class Parse(webapp.RequestHandler):
         scale_to = self.get_int('scale_logo', None)
 
         if urls:
-            podcasts = [feeddownloader.parse_feed(url, inline_logo, scale_to) for url in urls]
+            podcasts = feeddownloader.parse_feeds(urls, inline_logo, scale_to)
             pretty = json.dumps(podcasts, sort_keys=True, indent=4)
             self.response.out.write(pretty)
         else:
