@@ -12,7 +12,17 @@
   returning the simplified contents as JSON.</p>
 
   <h2>Usage</h2>
-  <p>Parameters to /parse (either GET or POST)
+
+  <h3>Examples</h3>
+  <pre>
+   <a href="/parse?url=http://feeds.feedburner.com/linuxoutlaws&inline_logo=1&scale_logo=30">curl http://mygpo-feedservice.appspot.com/parse?<strong>url</strong>=http://feeds.feedburner.com/linuxoutlaws&<strong>inline_logo</strong>=1&<strong>scale_logo</strong>=30</a>
+   <a href="/parse?url=http://leo.am/podcasts/floss&url=http://feeds.twit.tv/floss_video_large">curl http://mygpo-feedservice.appspot.com/parse?<strong>url</strong>=http://leo.am/podcasts/floss&<strong>url</strong>=http://feeds.twit.tv/floss_video_large</a>
+   <a href="/parse?url=http://www.dancarlin.com/cswdc.xml">curl http://mygpo-feedservice.appspot.com/parse?<strong>url</strong>=http://www.dancarlin.com/cswdc.xml</a>
+   curl -d url=http://feeds.feedburner.com/linuxoutlaws http://mygpo-feedservice.appspot.com/parse
+  </pre>
+
+  <h3>Requests</h3>
+  <p>Parameters to /parse (either GET or POST as application/x-www-form-urlencoded)
    <ul>
     <li><strong>url</strong>: The URL of the feed that should be parsed (required). This parameter can be repeated multiple times. The values can be URL-encoded.</li>
     <li><strong>inline_logo</strong>: If set to 1, the (unscaled) logos are included in the response as <a href="http://en.wikipedia.org/wiki/Data_URI_scheme">data URIs</a> (default 0).</li>
@@ -20,14 +30,44 @@
    </ul>
   </p>
 
-  <p>Examples:
-   <pre>
-    <a href="/parse?url=http://feeds.feedburner.com/linuxoutlaws&inline_logo=1&scale_logo=30">curl http://mygpo-feedservice.appspot.com/parse?<strong>url</strong>=http://feeds.feedburner.com/linuxoutlaws&<strong>inline_logo</strong>=1&<strong>scale_logo</strong>=30</a>
-    <a href="/parse?url=http://leo.am/podcasts/floss&url=http://feeds.twit.tv/floss_video_large">curl http://mygpo-feedservice.appspot.com/parse?<strong>url</strong>=http://leo.am/podcasts/floss&<strong>url</strong>=http://feeds.twit.tv/floss_video_large</a>
-    <a href="/parse?url=http://www.dancarlin.com/cswdc.xml">curl http://mygpo-feedservice.appspot.com/parse?<strong>url</strong>=http://www.dancarlin.com/cswdc.xml</a>
-    curl -d url=http://feeds.feedburner.com/linuxoutlaws http://mygpo-feedservice.appspot.com/parse
-   </pre>
-  </p>
+  <h3>Responses</h3>
+  <ul>
+   <li>Each response contains a list of feeds, at least one for each <em>url</em>-Parameter</li>
+   <li>HTTP-Redirects are followed automatically (this is reflected in the <em>urls</em> field)</li>
+   <li><a href="http://cyber.law.harvard.edu/rss/rssRedirect.html">RSS-Redirects</a> are followed by additionally including the new feed in the response</li>
+   <li>Each feed contains
+    <ul>
+     <li><strong>title</strong>: the title of the feed</li>
+     <li><strong>link</strong>: the feeds website</li>
+     <li><strong>description</strong>: a description of the feed, potentially including HTML characters</li>
+     <li><strong>author</strong>: the feed's author</li>
+     <li><strong>language</strong>: the feed's language</li>
+     <li><strong>urls</strong>: the redirect-chain of the URL passed in the <em>url</em> parameter. This can be used to match the requested URLs to the entries in the response.</li>
+     <li><strong>new_location</strong>: the referred to location, if the feed uses <a href="http://cyber.law.harvard.edu/rss/rssRedirect.html">RSS-Redirects</a>. The new location will also be included in the response</li>
+     <li><strong>logo</strong>: the URL of the feed's logo</li>
+     <li><strong>logo_data</strong>: the feed's logo as a <a href="http://en.wikipedia.org/wiki/Data_URI_scheme">data URI</a>, if <em>inline_logo</em> has been used</li>
+     <li><strong>content_types</strong>: the content types of the feed, either audio, video or image</li>
+     <li><strong>episodes</strong>: the list of episodes</li>
+    </ul>
+   </li>
+   <li>Each episode contains
+    <ul>
+     <li><strong>title</strong>: the title of the episode</li>
+     <li><strong>description</strong>: the description of the episode, potentially including HTML characters</li>
+     <li><strong>link</strong>: the website link for the episode</li>
+     <li><strong>timestamp</strong>: the timestamp of the episode's release in ISO 8601 (%Y-%m-%dT%H:%M:%S)</li>
+     <li><strong>author</strong>: the episode's author</li>
+     <li><strong>duration</strong>: the episode's duration in seconds</li>
+     <li><strong>language</strong>: the episode's language</li>
+     <li><strong>files</strong>: a list of all files linked by the episode. Each files is represented by an object containing url, filesize and mimetype. See below for description</li>
+     <li><strong>url</strong>: The URL of the first linked file</li>
+     <li><strong>filesize</strong>: the size of the first linked file in Byte</li>
+     <li><strong>mimetype</strong>: the mimetype of the first linked file</li>
+    </ul>
+   </li>
+  </ul>
+
+  <h3>Using this Instance</h3>
 
   <p>If you intend to use <em>this instance</em> of the webservice in your
   application, please contact <a
