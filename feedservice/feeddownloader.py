@@ -121,7 +121,6 @@ def get_episode_metadata(entry, files):
         'title': entry.get('title', entry.get('link', '')),
         'description': get_episode_summary(entry),
         'link': entry.get('link', ''),
-        'timestamp': None,
         'author': entry.get('author', entry.get('itunes_author', '')),
         'duration': get_duration(entry),
         'language': entry.get('language', ''),
