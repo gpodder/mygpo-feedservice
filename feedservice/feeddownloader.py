@@ -125,9 +125,6 @@ def get_episode_metadata(entry, files):
         'duration': get_duration(entry),
         'language': entry.get('language', ''),
         'files': [ dict(url=k, mimetype=v[0], filesize=v[1]) for (k, v) in files.items()],
-        'url': files.keys()[0],
-        'filesize': files.values()[0][1],
-        'mimetype': files.values()[0][0],
     }
     try:
         d['timestamp'] = datetime.datetime(*(entry.updated_parsed)[:6]).strftime('%Y-%m-%dT%H:%M:%S')

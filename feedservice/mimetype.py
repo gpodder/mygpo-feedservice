@@ -17,7 +17,7 @@ def get_podcast_types(podcast):
     """
     types = defaultdict()
     for e in podcast['episodes']:
-        t = get_type(e['mimetype'])
+        t = get_type(e['files'][0].get('mimetype', ''))
         types[t] = types.get(t, 0) + 1
 
     max_episodes = sum(types.itervalues())
