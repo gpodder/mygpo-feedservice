@@ -137,9 +137,13 @@ def get_episode_metadata(entry, files):
 def parse_feeds(feed_urls, *args, **kwargs):
     visited_urls = set()
     result = []
+    last_modified = None
 
     for url in feed_urls:
-        res, visited, new = parse_feed(url, *args, **kwargs)
+        res, visited, new, last_mod = parse_feed(url, *args, **kwargs)
+
+        if not res:
+            continue
 
         visited_urls.update(visited)
 
@@ -147,17 +151,23 @@ def parse_feeds(feed_urls, *args, **kwargs):
         if new and new not in (list(visited_urls) + feed_urls):
             feed_urls.append(new)
 
+        if last_mod > last_modified:
+            last_modified = last_mod
+
         result.append(res)
 
-    return result
+    return result, last_modified
 
 
-def parse_feed(feed_url, inline_logo, scale_to):
+def parse_feed(feed_url, inline_logo, scale_to, modified):
     try:
         fetcher.fetch(feed_url)
 
+    except feedcore.NotModified:
+        return None, None, None, None
+
     except (feedcore.Offline, feedcore.InvalidFeed, feedcore.WifiLogin, feedcore.AuthenticationRequired):
-        pass
+        return None, None, None, None
 
     except feedcore.NewLocation, location:
         return parse_feed(location.data)
@@ -201,7 +211,7 @@ def parse_feed(feed_url, inline_logo, scale_to):
     except Exception, e:
         print >>sys.stderr, 'Exception:', e
 
-    return podcast, urls, new_location
+    return podcast, urls, new_location, feed.modified
 
 
 def get_podcast_logo(feed):

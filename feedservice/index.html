@@ -40,6 +40,11 @@ a, a:visited {
     <li><strong>scale_logo</strong>: If inline_logo is set to 1, scales the included logo down to the given size. The resulting image is fitted into a square with the given side-length. If the given size is greater than the original size, the image won't be scaled at all.</li>
    </ul>
   </p>
+  <p>Headers to /parse
+   <ul>
+    <li><strong>If-Modified-Since</strong>: Time when all requested feeds have been accessed the last time. The response will only contain podcasts that have been modified in the meantime.</li>
+   </ul>
+  </p>
 
   <h3>Responses</h3>
   <ul>
@@ -74,6 +79,11 @@ a, a:visited {
     </ul>
    </li>
   </ul>
+  <p>Headers
+   <ul>
+    <li><strong>Last-Modified</strong>: The timestamp of the latest change to any of the requested feeds. This value can be used in the If-Modified-Since parameter to subsequent requests.</li>
+   </ul>
+  </p>
 
   <h3>Using this Instance</h3>
 
