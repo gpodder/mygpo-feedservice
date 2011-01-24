@@ -1,19 +1,11 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
  <head>
+  <link href="static/screen.css" type="text/css" rel="stylesheet" />
+  <link href="static/prettify.css" type="text/css" rel="stylesheet" />
+  <script type="text/javascript" src="static/prettify.js"></script>
   <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
   <title>gpodder.net Feed-Service</title>
-
-  <style>
-body {
-    font-family: sans-serif;
-}
-
-a, a:visited {
-    color: black;
-}
-
-  </style>
  </head>
 
  <body>
@@ -25,12 +17,12 @@ a, a:visited {
   <h2>Usage</h2>
 
   <h3>Examples</h3>
-  <pre>
-   <a href="/parse?url=http://feeds.feedburner.com/linuxoutlaws&inline_logo=1&scale_logo=30">curl http://mygpo-feedservice.appspot.com/parse?<strong>url</strong>=http://feeds.feedburner.com/linuxoutlaws&<strong>inline_logo</strong>=1&<strong>scale_logo</strong>=30</a>
-   <a href="/parse?url=http://leo.am/podcasts/floss&url=http://feeds.twit.tv/floss_video_large">curl http://mygpo-feedservice.appspot.com/parse?<strong>url</strong>=http://leo.am/podcasts/floss&<strong>url</strong>=http://feeds.twit.tv/floss_video_large</a>
-   <a href="/parse?url=http://www.dancarlin.com/cswdc.xml">curl http://mygpo-feedservice.appspot.com/parse?<strong>url</strong>=http://www.dancarlin.com/cswdc.xml</a>
-   curl -d url=http://feeds.feedburner.com/linuxoutlaws http://mygpo-feedservice.appspot.com/parse
-  </pre>
+  <pre class="prettyprint">
+   SERVER=http://mygpo-feedservice.appspot.com/parse
+   curl --header "Accept: application/json" "$SERVER?<strong>url</strong>=http://feeds.feedburner.com/linuxoutlaws&amp;<strong>inline_logo</strong>=1&amp;<strong>scale_logo</strong>=30" #<a href="/parse?url=http://feeds.feedburner.com/linuxoutlaws&inline_logo=1&scale_logo=30" title="see HTML response">^</a>
+   curl --header "Accept: application/json" "$SERVER?<strong>url</strong>=http://leo.am/podcasts/floss&amp;<strong>url</strong>=http://feeds.twit.tv/floss_video_large"</a> #<a href="/parse?url=http://leo.am/podcasts/floss&url=http://feeds.twit.tv/floss_video_large" title="see HTML response">^</a>
+   curl --header "Accept: application/json" "$SERVER?<strong>url</strong>=http://www.dancarlin.com/cswdc.xml&amp;<strong>strip_html</strong>=1"</a> #<a href="/parse?url=http://www.dancarlin.com/cswdc.xml?strip_html=1" title="see HTML response">^</a>
+   curl --header "Accept: application/json" -d "url=http://feeds.feedburner.com/linuxoutlaws" $SERVER #<a href="/parse?url=http://feeds.feedburner.com/linuxoutlaws" title="see HTML response">^</a></pre>
 
   <h3>Requests</h3>
   <p>Parameters to /parse (either GET or POST as application/x-www-form-urlencoded)
@@ -45,7 +37,7 @@ a, a:visited {
    <ul>
     <li><strong>If-Modified-Since</strong>: Time when all requested feeds have been accessed the last time. The response will only contain podcasts that have been modified in the meantime.</li>
     <li><strong>User-Agent</strong>: Clients should send a descriptive User-Agent string. In case of abuse of the service, misbehaving and/or generic user-agents might be blocked.</li>
-    <li><strong>Accept</strong>: Clients should send <em>Accept: application/json</em> to indicate that they are prepared to receive JSON data. Currently this is the only supported format, but in the future, this header might be used to distinguish between different formats.</li>
+    <li><a name="accept" /><strong>Accept</strong>: Clients should send <em>Accept: application/json</em> to indicate that they are prepared to receive JSON data. If you send a different Accept header, you will receive a HTML formatted response.</li>
    </ul>
   </p>
 
@@ -84,7 +76,8 @@ a, a:visited {
   </ul>
   <p>Headers
    <ul>
-    <li><strong>Last-Modified</strong>: The timestamp of the latest change to any of the requested feeds. This value can be used in the If-Modified-Since parameter to subsequent requests.</li>
+    <li><strong>Last-Modified</strong>: The timestamp of the latest change to any of the requested feeds. This value can be used in the If-Modified-Since parameter to subsequent requests. This header is not sent for the HTML formatted response.</li>
+    <li><strong>Content-Type</strong>: <em>application/json</em> if your request contains <em>Accept: application/json</em>, otherwise the response will contain the HTML representation with <em>text/html</em>.</li>
    </ul>
   </p>
 
