@@ -19,12 +19,13 @@ class Parse(webapp.RequestHandler):
         self.response.headers['Content-Type'] = 'text/plain'
         urls = self.request.get_all('url')
         urls = map(urllib.unquote, urls)
-        inline_logo = self.get_int('inline_logo')
-        scale_to = self.get_int('scale_logo', None)
+        inline_logo = self.request.get_range('inline_logo', 0, 1, default=0)
+        scale_to = self.request.get_range('scale_logo', 0, 1, default=0)
+        strip_html = self.request.get_range('strip_html', 0, 1, default=0)
         modified = self.request.headers.get('If-Modified-Since', None)
 
         if urls:
-            podcasts, last_modified = feeddownloader.parse_feeds(urls, inline_logo, scale_to, modified)
+            podcasts, last_modified = feeddownloader.parse_feeds(urls, inline_logo, scale_to, strip_html, modified)
             pretty = json.dumps(podcasts, sort_keys=True, indent=4)
 
             if last_modified:
@@ -37,12 +38,6 @@ class Parse(webapp.RequestHandler):
         else:
             self.response.set_status(400)
             self.response.out.write('parameter url missing')
-
-    def get_int(self, param, default=0):
-        try:
-            return int(self.request.get(param, default))
-        except:
-            return default
 
 
 application = webapp.WSGIApplication([

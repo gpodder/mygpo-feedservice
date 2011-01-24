@@ -32,7 +32,7 @@ from google.appengine.api import images
 
 
 import feedcore
-from utils import parse_time
+from utils import parse_time, remove_html_tags
 import youtube
 from mimetype import get_mimetype, check_mimetype, get_podcast_types
 from urls import get_redirects
@@ -116,7 +116,7 @@ def update_feed_tags(podcast, tags):
     #        PodcastTag.objects.get_or_create(podcast=podcast, source=src, tag=tag)
 
 
-def get_episode_metadata(entry, files):
+def get_episode_metadata(entry, files, strip_html):
     d = {
         'title': entry.get('title', entry.get('link', '')),
         'description': get_episode_summary(entry),
@@ -130,6 +130,11 @@ def get_episode_metadata(entry, files):
         d['timestamp'] = datetime.datetime(*(entry.updated_parsed)[:6]).strftime('%Y-%m-%dT%H:%M:%S')
     except:
         d['timestamp'] = None
+
+
+    if strip_html:
+        for x in ('title', 'description', 'author'):
+            d[x] = remove_html_tags(d[x])
 
     return d
 
@@ -159,7 +164,7 @@ def parse_feeds(feed_urls, *args, **kwargs):
     return result, last_modified
 
 
-def parse_feed(feed_url, inline_logo, scale_to, modified):
+def parse_feed(feed_url, inline_logo, scale_to, strip_html, modified):
     try:
         fetcher.fetch(feed_url)
 
@@ -180,6 +185,10 @@ def parse_feed(feed_url, inline_logo, scale_to, modified):
         podcast['description'] = feed.feed.get('subtitle', '')
         podcast['author'] = feed.feed.get('author', feed.feed.get('itunes_author', ''))
         podcast['language'] = feed.feed.get('language', '')
+
+        if strip_html:
+            for x in ('title', 'description', 'author'):
+                podcast[x] = remove_html_tags(podcast[x])
 
         urls = get_redirects(feed_url)
         podcast['urls'] = urls
@@ -203,7 +212,7 @@ def parse_feed(feed_url, inline_logo, scale_to, modified):
             if not urls:
                 continue
 
-            e = get_episode_metadata(entry, urls)
+            e = get_episode_metadata(entry, urls, strip_html)
             podcast['episodes'].append(e)
 
         podcast['content_types'] = get_podcast_types(podcast)
