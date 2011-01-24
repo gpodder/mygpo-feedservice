@@ -45,6 +45,7 @@ a, a:visited {
    <ul>
     <li><strong>If-Modified-Since</strong>: Time when all requested feeds have been accessed the last time. The response will only contain podcasts that have been modified in the meantime.</li>
     <li><strong>User-Agent</strong>: Clients should send a descriptive User-Agent string. In case of abuse of the service, misbehaving and/or generic user-agents might be blocked.</li>
+    <li><strong>Accept</strong>: Clients should send <em>Accept: application/json</em> to indicate that they are prepared to receive JSON data. Currently this is the only supported format, but in the future, this header might be used to distinguish between different formats.</li>
    </ul>
   </p>
 
