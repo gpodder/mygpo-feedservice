@@ -4,7 +4,7 @@ APPDIR=feedservice
 
 
 runserver:
-	${PYTHON} ${APPENGINE_SDK}/dev_appserver.py ${APPDIR}
+	${PYTHON} ${APPENGINE_SDK}/dev_appserver.py --clear_datastore ${APPDIR}
 
 deploy:
 	${PYTHON} ${APPENGINE_SDK}/appcfg.py update ${APPDIR}

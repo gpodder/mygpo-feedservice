@@ -35,7 +35,7 @@
   </p>
   <p>Headers to /parse
    <ul>
-    <li><strong>If-Modified-Since</strong>: Time when all requested feeds have been accessed the last time. The response will only contain podcasts that have been modified in the meantime.</li>
+    <li><a href="if-mod-since" /><strong>If-Modified-Since</strong>: Time when all requested feeds have been accessed the last time. The response will only contain podcasts that have been modified in the meantime.</li>
     <li><strong>User-Agent</strong>: Clients should send a descriptive User-Agent string. In case of abuse of the service, misbehaving and/or generic user-agents might be blocked.</li>
     <li><a name="accept" /><strong>Accept</strong>: Clients should send <em>Accept: application/json</em> to indicate that they are prepared to receive JSON data. If you send a different Accept header, you will receive a HTML formatted response.</li>
    </ul>
@@ -56,7 +56,7 @@
      <li><strong>urls</strong>: the redirect-chain of the URL passed in the <em>url</em> parameter. This can be used to match the requested URLs to the entries in the response.</li>
      <li><strong>new_location</strong>: the referred to location, if the feed uses <a href="http://cyber.law.harvard.edu/rss/rssRedirect.html">RSS-Redirects</a>. The new location will also be included in the response</li>
      <li><strong>logo</strong>: the URL of the feed's logo</li>
-     <li><strong>logo_data</strong>: the feed's logo as a <a href="http://en.wikipedia.org/wiki/Data_URI_scheme">data URI</a>, if <em>inline_logo</em> has been used</li>
+     <li><strong>logo_data</strong>: the feed's logo as a <a href="http://en.wikipedia.org/wiki/Data_URI_scheme">data URI</a>, if <em>inline_logo</em> has been used. To save bandwidth, the logo is not included if it changed since the date sent in <em><a href="#if-mod-since">If-Modified-Since</a></em></li>
      <li><strong>content_types</strong>: the content types of the feed, either audio, video or image</li>
      <li><strong>episodes</strong>: the list of episodes</li>
     </ul>

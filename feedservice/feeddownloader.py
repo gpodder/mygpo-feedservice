@@ -17,28 +17,22 @@
 # along with my.gpodder.org. If not, see <http://www.gnu.org/licenses/>.
 #
 
-USER_AGENT = 'mygpo crawler (+http://my.gpodder.org)'
-
-
 import os
 import sys
 import datetime
 import hashlib
-import urllib2
 import base64
-#import socket
+
+import feedparser
 
 from google.appengine.api import images
 
 
-import feedcore
+import urlstore
 from utils import parse_time, remove_html_tags
 import youtube
 from mimetype import get_mimetype, check_mimetype, get_podcast_types
 from urls import get_redirects
-
-#socket.setdefaulttimeout(10)
-fetcher = feedcore.Fetcher(USER_AGENT)
 
 
 def get_episode_files(entry):
@@ -156,7 +150,7 @@ def parse_feeds(feed_urls, *args, **kwargs):
         if new and new not in (list(visited_urls) + feed_urls):
             feed_urls.append(new)
 
-        if last_mod > last_modified:
+        if not last_modified or (last_mod and last_mod > last_modified):
             last_modified = last_mod
 
         result.append(res)
@@ -165,62 +159,55 @@ def parse_feeds(feed_urls, *args, **kwargs):
 
 
 def parse_feed(feed_url, inline_logo, scale_to, strip_html, modified):
-    try:
-        fetcher.fetch(feed_url)
+    feed_url, feed_content, last_modified = urlstore.get_url(feed_url)
 
-    except feedcore.NotModified:
+    if last_modified and modified and last_modified <= modified:
         return None, None, None, None
 
-    except (feedcore.Offline, feedcore.InvalidFeed, feedcore.WifiLogin, feedcore.AuthenticationRequired):
-        return None, None, None, None
+    feed = feedparser.parse(feed_content)
+    feed.feed.link = feed_url
 
-    except feedcore.NewLocation, location:
-        return parse_feed(location.data)
+    podcast = dict()
+    podcast['title'] = feed.feed.get('title', '')
+    podcast['link']  = feed.feed.get('link', '')
+    podcast['description'] = feed.feed.get('subtitle', '')
+    podcast['author'] = feed.feed.get('author', feed.feed.get('itunes_author', ''))
+    podcast['language'] = feed.feed.get('language', '')
 
-    except feedcore.UpdatedFeed, updated:
-        feed = updated.data
-        podcast = dict()
-        podcast['title'] = feed.feed.get('title', '')
-        podcast['link']  = feed.feed.get('link', '')
-        podcast['description'] = feed.feed.get('subtitle', '')
-        podcast['author'] = feed.feed.get('author', feed.feed.get('itunes_author', ''))
-        podcast['language'] = feed.feed.get('language', '')
+    if strip_html:
+        for x in ('title', 'description', 'author'):
+            podcast[x] = remove_html_tags(podcast[x])
 
-        if strip_html:
-            for x in ('title', 'description', 'author'):
-                podcast[x] = remove_html_tags(podcast[x])
+    urls = get_redirects(feed_url)
+    podcast['urls'] = urls
 
-        urls = get_redirects(feed_url)
-        podcast['urls'] = urls
+    if 'newlocation' in feed.feed:
+        new_location = feed.feed.newlocation
+        podcast['new_location'] = new_location
+    else:
+        new_location = ''
 
-        if 'newlocation' in feed.feed:
-            new_location = feed.feed.newlocation
-            podcast['new_location'] = new_location
-        else:
-            new_location = ''
+    logo_url = get_podcast_logo(feed)
+    podcast['logo'] = logo_url
+    if inline_logo and logo_url:
+        data_uri = get_data_uri(logo_url, scale_to, modified)
+        if data_uri:
+            podcast['logo_data'] = data_uri
 
-        logo_url = get_podcast_logo(feed)
-        podcast['logo'] = logo_url
-        if inline_logo and logo_url:
-            podcast['logo_data'] = get_data_uri(logo_url, scale_to)
+    #update_feed_tags(podcast, get_feed_tags(feed.feed))
 
-        #update_feed_tags(podcast, get_feed_tags(feed.feed))
+    podcast['episodes'] = []
+    for entry in feed.entries:
+        urls = get_episode_files(entry)
+        if not urls:
+            continue
 
-        podcast['episodes'] = []
-        for entry in feed.entries:
-            urls = get_episode_files(entry)
-            if not urls:
-                continue
+        e = get_episode_metadata(entry, urls, strip_html)
+        podcast['episodes'].append(e)
 
-            e = get_episode_metadata(entry, urls, strip_html)
-            podcast['episodes'].append(e)
+    podcast['content_types'] = get_podcast_types(podcast)
 
-        podcast['content_types'] = get_podcast_types(podcast)
-
-    except Exception, e:
-        print >>sys.stderr, 'Exception:', e
-
-    return podcast, urls, new_location, feed.modified
+    return podcast, urls, new_location, last_modified
 
 
 def get_podcast_logo(feed):
@@ -239,8 +226,11 @@ def get_podcast_logo(feed):
     return cover_art
 
 
-def get_data_uri(url, size=None):
-    content = urllib2.urlopen(url).read()
+def get_data_uri(url, size=None, modified_since=None):
+    url, content, last_modified = urlstore.get_url(url)
+
+    if last_modified and modified_since and last_modified <= modified:
+        return None
 
     if size:
         img = images.Image(content)
