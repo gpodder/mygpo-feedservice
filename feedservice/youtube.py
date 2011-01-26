@@ -38,6 +38,9 @@ def get_youtube_id(url):
 
 
 def get_real_cover(url):
+    if not url:
+        return None
+
     rs = [re.compile('http://www\\.youtube\\.com/rss/user/([^/]+)/videos\\.rss',  re.IGNORECASE),
           re.compile('http://www\\.youtube\\.com/profile_videos\\?user=([^\&]+)', re.IGNORECASE)]
 

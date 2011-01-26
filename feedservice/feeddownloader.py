@@ -55,7 +55,6 @@ def parse_feed(feed_url, inline_logo, scale_to, strip_html, modified):
         return None, None, None, None
 
     feed = feedparser.parse(feed_content)
-    feed.feed.link = feed_url
 
     podcast = dict()
 
@@ -105,7 +104,7 @@ def get_podcast_logo(feed):
             if cover_art:
                 break
 
-    yturl = youtube.get_real_cover(feed.feed.link)
+    yturl = youtube.get_real_cover(feed.feed.get('link', None))
     if yturl:
         cover_art = yturl
 
