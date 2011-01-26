@@ -65,7 +65,7 @@ def fetch_url(url, cached=None):
         request.add_header('If-Modified-Since', lm_str)
 
     if getattr(cached, 'etag', False):
-        request.add_header('ETag', cached.etag)
+        request.add_header('If-None-Match', cached.etag)
 
     try:
         r = opener.open(request)

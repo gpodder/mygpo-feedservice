@@ -34,6 +34,8 @@ class Parse(webapp.RequestHandler):
 
 
     def send_response(self, podcasts, last_modified, format):
+        self.response.headers.add_header('Vary', 'Accept')
+
         if 'json' in format:
             content_type = 'application/json'
             content = json.dumps(podcasts, sort_keys=True, indent=None, separators=(',', ':'))
