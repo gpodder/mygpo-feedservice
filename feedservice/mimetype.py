@@ -6,9 +6,7 @@ import mimetypes
 TYPE_THRESHOLD=.2
 
 
-_ = lambda s: s
-
-CONTENT_TYPES = (_('image'), _('audio'), _('video'))
+CONTENT_TYPES = ('image', 'audio', 'video')
 
 def get_podcast_types(podcast):
     """Returns the types of a podcast
