@@ -36,7 +36,7 @@ class Parse(webapp.RequestHandler):
 
 
     def send_response(self, podcasts, last_modified, formats):
-        self.response.headers.add_header('Vary', 'Accept')
+        self.response.headers.add_header('Vary', 'Accept, User-Agent, Accept-Encoding')
 
         format = httputils.select_matching_option(['text/html', 'application/json'], formats)
 
