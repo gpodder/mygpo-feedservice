@@ -78,6 +78,7 @@
    <ul>
     <li><strong>Last-Modified</strong>: The timestamp of the latest change to any of the requested feeds. This value can be used in the If-Modified-Since parameter to subsequent requests. This header is not sent for the HTML formatted response.</li>
     <li><strong>Content-Type</strong>: <em>application/json</em> if your request contains <em>Accept: application/json</em>, otherwise the response will contain the HTML representation with <em>text/html</em>.</li>
+    <li><strong>Vary</strong>: Contains the request headers for which the response can vary. Currently this is <em>Accept</em>.</li>
    </ul>
   </p>
 
