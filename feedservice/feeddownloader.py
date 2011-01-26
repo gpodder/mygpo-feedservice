@@ -39,7 +39,7 @@ def parse_feeds(feed_urls, *args, **kwargs):
     return result, last_modified
 
 
-def parse_feed(feed_url, inline_logo, scale_to, strip_html, modified):
+def parse_feed(feed_url, inline_logo, scale_to, strip_html, modified, use_cache):
     """
     Parses a feed and returns its JSON object, a list of urls that refer to
     this feed, an outgoing redirect and the timestamp of the last modification
@@ -49,7 +49,7 @@ def parse_feed(feed_url, inline_logo, scale_to, strip_html, modified):
     import feedparser
     from urls import get_redirects
 
-    feed_url, feed_content, last_modified = urlstore.get_url(feed_url)
+    feed_url, feed_content, last_modified = urlstore.get_url(feed_url, use_cache)
 
     if last_modified and modified and last_modified <= modified:
         return None, None, None, None

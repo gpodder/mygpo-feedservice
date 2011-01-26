@@ -27,13 +27,13 @@ class URLObject(db.Model):
         return '%s (%s, %s, %s)' % (self.url, self.etag, self.expires, self.modified)
 
 
-def get_url(url):
+def get_url(url, use_cache=True):
     """
     Gets the contents for the given URL from either memcache,
     the datastore or the URL itself
     """
 
-    cached = from_cache(url)
+    cached = from_cache(url) if use_cache else None
 
     if not cached or cached.expired() or not cached.valid():
         resp = fetch_url(url, cached)
