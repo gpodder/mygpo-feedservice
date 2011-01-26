@@ -2,6 +2,7 @@ from google.appengine.ext import webapp
 from google.appengine.ext.webapp.util import run_wsgi_app
 
 import urllib
+import httputils
 import feeddownloader
 import simplejson as json
 
@@ -34,15 +35,17 @@ class Parse(webapp.RequestHandler):
             self.response.out.write('parameter url missing')
 
 
-    def send_response(self, podcasts, last_modified, format):
+    def send_response(self, podcasts, last_modified, formats):
         self.response.headers.add_header('Vary', 'Accept')
 
-        if 'json' in format:
+        format = httputils.select_matching_option(['text/html', 'application/json'], formats)
+
+        if format in (None, 'application/json'): #serve json as default
             content_type = 'application/json'
             content = json.dumps(podcasts, sort_keys=True, indent=None, separators=(',', ':'))
             from email import utils
             import time
-            self.response.headers.add_header('Last-Modified', utils.formatdate(time.mktime(last_modified)))
+            self.response.headers.add_header('Last-Modified', utils.formatdate(time.mktime(last_modified.timetuple())))
 
 
         else:

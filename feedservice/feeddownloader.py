@@ -47,7 +47,7 @@ def parse_feed(feed_url, inline_logo, scale_to, strip_html, modified, use_cache)
     """
 
     import feedparser
-    from urls import get_redirects
+    from httputils import get_redirects
 
     feed_url, feed_content, last_modified = urlstore.get_url(feed_url, use_cache)
 
