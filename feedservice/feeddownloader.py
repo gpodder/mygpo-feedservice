@@ -68,7 +68,7 @@ def parse_feed(feed_url, inline_logo, scale_to, strip_html, modified):
         ('urls',          False, lambda: get_redirects(feed_url)),
         ('new_location',  False, lambda: get_newlocation(feed)),
         ('logo',          False, lambda: get_podcast_logo(feed)),
-        ('logo_data',     False, lambda: get_data_uri(inline_logo, podcast['logo'], scale_to, modified)),
+        ('logo_data',     False, lambda: get_data_uri(inline_logo, podcast.get('logo', None), scale_to, modified)),
         ('tags',          False, lambda: get_feed_tags(feed.feed)),
         ('episodes',      False, lambda: get_episodes(feed, strip_html)),
         ('content_types', False, lambda: get_podcast_types(podcast)),
@@ -116,7 +116,7 @@ def get_data_uri(inline_logo, url, size=None, modified_since=None):
     import base64
     from google.appengine.api import images
 
-    if not inline_logo:
+    if not inline_logo or not url:
         return None
 
     url, content, last_modified = urlstore.get_url(url)
