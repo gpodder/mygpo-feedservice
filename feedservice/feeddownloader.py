@@ -155,7 +155,7 @@ def get_episode_metadata(entry, strip_html):
         ('duration',    False, lambda: get_duration(entry)),
         ('language',    False, lambda: entry.get('language', None)),
         ('files',       False, lambda: get_files(files)),
-        ('timestamp',   False, lambda: get_timestamp(entry)),
+        ('released',    False, lambda: get_timestamp(entry)),
     )
 
     episode = {}
@@ -234,6 +234,6 @@ def get_files(files):
 def get_timestamp(entry):
     from datetime import datetime
     try:
-        return datetime.datetime(*(entry.updated_parsed)[:6]).strftime('%Y-%m-%dT%H:%M:%S')
+        return datetime(*(entry.updated_parsed)[:6]).strftime('%Y-%m-%dT%H:%M:%S')
     except:
         return None
