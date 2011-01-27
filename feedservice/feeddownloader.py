@@ -65,7 +65,7 @@ def parse_feed(feed_url, inline_logo, scale_to, strip_html, modified, use_cache)
         ('author',        True,  lambda: feed.feed.get('author', feed.feed.get('itunes_author', None))),
         ('language',      False, lambda: feed.feed.get('language', None)),
         ('urls',          False, lambda: get_redirects(feed_url)),
-        ('new_location',  False, lambda: get_newlocation(feed)),
+        ('new_location',  False, lambda: feed.feed.get('newlocation', None)),
         ('logo',          False, lambda: get_podcast_logo(feed)),
         ('logo_data',     False, lambda: get_data_uri(inline_logo, podcast.get('logo', None), scale_to, modified)),
         ('tags',          False, lambda: get_feed_tags(feed.feed)),
@@ -88,13 +88,6 @@ def set_val(obj, name, func, remove_tags):
         obj[name] = val
 
 
-def get_newlocation(feed):
-    if 'newlocation' in feed.feed:
-        return feed.feed.newlocation
-    else:
-        return None
-
-
 def get_podcast_logo(feed):
     cover_art = None
     image = feed.feed.get('image', None)
@@ -104,9 +97,7 @@ def get_podcast_logo(feed):
             if cover_art:
                 break
 
-    yturl = youtube.get_real_cover(feed.feed.get('link', None))
-    if yturl:
-        cover_art = yturl
+    cover_art = youtube.get_real_cover(feed.feed.get('link', None)) or cover_art
 
     return cover_art
 
@@ -115,7 +106,7 @@ def get_data_uri(inline_logo, url, size=None, modified_since=None):
     import base64
     from google.appengine.api import images
 
-    if not inline_logo or not url:
+    if None in (inline_logo, url):
         return None
 
     url, content, last_modified = urlstore.get_url(url)
@@ -137,7 +128,7 @@ def get_feed_tags(feed):
 
     for tag in feed.get('tags', []):
         if tag['term']:
-            tags.extend([t for t in tag['term'].split(',') if t])
+            tags.extend(filter(None, tag['term'].split(',')))
 
         if tag['label']:
             tags.append(tag['label'])
@@ -146,16 +137,32 @@ def get_feed_tags(feed):
 
 
 def get_episodes(feed, strip_html):
-    episodes = []
-    for entry in feed.entries:
-        urls = get_episode_files(entry)
-        if not urls:
-            continue
+    get_episode = lambda e: get_episode_metadata(e, strip_html)
+    return filter(None, map(get_episode, feed.entries))
 
-        e = get_episode_metadata(entry, urls, strip_html)
-        episodes.append(e)
-    return episodes
 
+def get_episode_metadata(entry, strip_html):
+
+    files = get_episode_files(entry)
+    if not files:
+        return None
+
+    PROPERTIES = (
+        ('title',       True,  lambda: entry.get('title', entry.get('link', None))),
+        ('description', True,  lambda: get_episode_summary(entry)),
+        ('link',        False, lambda: entry.get('link', None)),
+        ('author',      True,  lambda: entry.get('author', entry.get('itunes_author', None))),
+        ('duration',    False, lambda: get_duration(entry)),
+        ('language',    False, lambda: entry.get('language', None)),
+        ('files',       False, lambda: get_files(files)),
+        ('timestamp',   False, lambda: get_timestamp(entry)),
+    )
+
+    episode = {}
+    for name, is_text, func in PROPERTIES:
+        set_val(episode, name, func, strip_html and is_text)
+
+    return episode
 
 
 def get_episode_files(entry):
@@ -191,27 +198,6 @@ def get_episode_files(entry):
         # XXX: Implement link detection as in gPodder
 
     return urls
-
-
-def get_episode_metadata(entry, files, strip_html):
-
-    PROPERTIES = (
-        ('title',       True,  lambda: entry.get('title', entry.get('link', None))),
-        ('description', True,  lambda: get_episode_summary(entry)),
-        ('link',        False, lambda: entry.get('link', None)),
-        ('author',      True,  lambda: entry.get('author', entry.get('itunes_author', None))),
-        ('duration',    False, lambda: get_duration(entry)),
-        ('language',    False, lambda: entry.get('language', None)),
-        ('files',       False, lambda: get_files(files)),
-        ('timestamp',   False, lambda: get_timestamp(entry)),
-    )
-
-    episode = {}
-    for name, is_text, func in PROPERTIES:
-        set_val(episode, name, func, strip_html and is_text)
-
-    return episode
-
 
 
 def get_episode_summary(entry):

@@ -17,8 +17,8 @@ class Parse(webapp.RequestHandler):
         return self.get()
 
     def get(self):
-        urls = self.request.get_all('url')
-        urls = map(urllib.unquote, urls)
+        urls = map(urllib.unquote, self.request.get_all('url'))
+
         inline_logo = self.request.get_range('inline_logo', 0, 1, default=0)
         scale_to = self.request.get_range('scale_logo', 0, 1, default=0)
         strip_html = self.request.get_range('strip_html', 0, 1, default=0)
