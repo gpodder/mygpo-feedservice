@@ -47,8 +47,7 @@ def from_cache(url):
     """
     Tries to get the object for the given URL from Memcache or the Datastore
     """
-    obj = memcache.get(url)
-    return obj or URLObject.all().filter('url =', url).get()
+    return memcache.get(url)
 
 
 def fetch_url(url, cached=None):
@@ -75,7 +74,6 @@ def fetch_url(url, cached=None):
         obj.modified = parse_header_date(r.headers.dict.get('last-modified', None))
         obj.etag     =                   r.headers.dict.get('etag',          None)
 
-        obj.put()
         memcache.set(url, obj)
 
     except urllib2.HTTPError, e:
