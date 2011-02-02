@@ -148,6 +148,7 @@ def get_episode_metadata(entry, strip_html):
         return None
 
     PROPERTIES = (
+        ('guid',        None,  lambda: entry.get('id', None)),
         ('title',       True,  lambda: entry.get('title', entry.get('link', None))),
         ('description', True,  lambda: get_episode_summary(entry)),
         ('link',        False, lambda: entry.get('link', None)),
