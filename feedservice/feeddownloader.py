@@ -69,7 +69,7 @@ def parse_feed(feed_url, inline_logo, scale_to, strip_html, modified, use_cache)
         ('logo',          False, lambda: get_podcast_logo(feed)),
         ('logo_data',     False, lambda: get_data_uri(inline_logo, podcast.get('logo', None), scale_to, modified)),
         ('tags',          False, lambda: get_feed_tags(feed.feed)),
-        ('episodes',      False, lambda: get_episodes(feed, strip_html)),
+        ('episodes',      False, lambda: get_episodes(feed, strip_html, podcast.get('title', None))),
         ('content_types', False, lambda: get_podcast_types(podcast)),
     )
 
@@ -136,12 +136,12 @@ def get_feed_tags(feed):
     return list(set(tags))
 
 
-def get_episodes(feed, strip_html):
-    get_episode = lambda e: get_episode_metadata(e, strip_html)
+def get_episodes(feed, strip_html, podcast_title):
+    get_episode = lambda e: get_episode_metadata(e, strip_html, podcast_title)
     return filter(None, map(get_episode, feed.entries))
 
 
-def get_episode_metadata(entry, strip_html):
+def get_episode_metadata(entry, strip_html, podcast_title=None):
 
     files = get_episode_files(entry)
     if not files:
@@ -149,7 +149,9 @@ def get_episode_metadata(entry, strip_html):
 
     PROPERTIES = (
         ('guid',        None,  lambda: entry.get('id', None)),
-        ('title',       True,  lambda: entry.get('title', entry.get('link', None))),
+        ('title',       True,  lambda: entry.get('title', None)),
+        ('number',      False, lambda: get_episode_number(entry.get('title', None), podcast_title)),
+        ('short_title', True,  lambda: get_short_title(entry.get('title', None), podcast_title)),
         ('description', True,  lambda: get_episode_summary(entry)),
         ('link',        False, lambda: entry.get('link', None)),
         ('author',      True,  lambda: entry.get('author', entry.get('itunes_author', None))),
@@ -199,6 +201,32 @@ def get_episode_files(entry):
         # XXX: Implement link detection as in gPodder
 
     return urls
+
+
+def get_episode_number(title, podcast_title):
+    import re
+
+    if title is None:
+        return None
+
+    title = title.replace(podcast_title, '').strip()
+    match = re.search(r'^\W*(\d+)', title)
+    if not match:
+        return None
+
+    return int(match.group(1))
+
+
+def get_short_title(title, podcast_title):
+    import re
+
+    if title is None:
+        return None
+
+    title = title.replace(podcast_title, '').strip()
+    title = re.sub(r'^[\W\d]+', '', title)
+    title = re.sub(r'\W+$', '', title)
+    return title
 
 
 def get_episode_summary(entry):
