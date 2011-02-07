@@ -21,13 +21,14 @@ class Parse(webapp.RequestHandler):
 
         inline_logo = self.request.get_range('inline_logo', 0, 1, default=0)
         scale_to = self.request.get_range('scale_logo', 0, 1, default=0)
+        logo_format = self.request.get('logo_format')
         strip_html = self.request.get_range('strip_html', 0, 1, default=0)
         use_cache = self.request.get_range('use_cache', 0, 1, default=1)
         modified = self.request.headers.get('If-Modified-Since', None)
         accept = self.request.headers.get('Accept', 'application/json')
 
         if urls:
-            podcasts, last_modified = feeddownloader.parse_feeds(urls, inline_logo, scale_to, strip_html, modified, use_cache)
+            podcasts, last_modified = feeddownloader.parse_feeds(urls, inline_logo, scale_to, logo_format, strip_html, modified, use_cache)
             self.send_response(podcasts, last_modified, accept)
 
         else:

@@ -39,7 +39,7 @@ def parse_feeds(feed_urls, *args, **kwargs):
     return result, last_modified
 
 
-def parse_feed(feed_url, inline_logo, scale_to, strip_html, modified, use_cache):
+def parse_feed(feed_url, inline_logo, scale_to, logo_format, strip_html, modified, use_cache):
     """
     Parses a feed and returns its JSON object, a list of urls that refer to
     this feed, an outgoing redirect and the timestamp of the last modification
@@ -67,7 +67,7 @@ def parse_feed(feed_url, inline_logo, scale_to, strip_html, modified, use_cache)
         ('urls',          False, lambda: get_redirects(feed_url)),
         ('new_location',  False, lambda: feed.feed.get('newlocation', None)),
         ('logo',          False, lambda: get_podcast_logo(feed)),
-        ('logo_data',     False, lambda: get_data_uri(inline_logo, podcast.get('logo', None), scale_to, modified)),
+        ('logo_data',     False, lambda: get_data_uri(inline_logo, podcast.get('logo', None), modified, size=scale_to, img_format=logo_format)),
         ('tags',          False, lambda: get_feed_tags(feed.feed)),
         ('episodes',      False, lambda: get_episodes(feed, strip_html, podcast.get('title', None))),
         ('content_types', False, lambda: get_podcast_types(podcast)),
@@ -102,9 +102,13 @@ def get_podcast_logo(feed):
     return cover_art
 
 
-def get_data_uri(inline_logo, url, size=None, modified_since=None):
+def get_data_uri(inline_logo, url, modified_since, **transform_args):
+    """
+    Fetches the logo, applies the specified transformations and
+    returns the Data URI for the resulting image
+    """
+
     import base64
-    from google.appengine.api import images
 
     if None in (inline_logo, url):
         return None
@@ -114,13 +118,37 @@ def get_data_uri(inline_logo, url, size=None, modified_since=None):
     if last_modified and modified_since and last_modified <= modified:
         return None
 
-    if size:
-        img = images.Image(content)
-        content = images.resize(content, min(size, img.width), min(size, img.height))
-
     mimetype = get_mimetype(None, url)
+
+    if any(transform_args.values()):
+        content, mimetype = transform_image(content, mimetype, **transform_args)
+
     encoded = base64.b64encode(content)
     return 'data:%s;base64,%s' % (mimetype, encoded)
+
+
+def transform_image(content, mimetype, size, img_format):
+    """
+    Transforms (resizes, converts) the image and returns
+    the resulting bytes and mimetype
+    """
+
+    from google.appengine.api import images
+
+    img_formats = dict(png=images.PNG, jpeg=images.JPEG)
+
+    img = images.Image(content)
+
+    if img_format:
+        mimetype = 'image/%s' % img_format
+    else:
+        img_format = mimetype[mimetype.find('/')+1:]
+
+    if size:
+        img.resize(min(size, img.width), min(size, img.height))
+
+    content = img.execute_transforms(output_encoding=img_formats[img_format])
+    return content, mimetype
 
 
 def get_feed_tags(feed):
