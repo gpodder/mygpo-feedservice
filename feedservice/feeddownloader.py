@@ -71,6 +71,7 @@ def parse_feed(feed_url, inline_logo, scale_to, logo_format, strip_html, modifie
         ('logo',          False, lambda: get_podcast_logo(feed)),
         ('logo_data',     False, lambda: get_data_uri(inline_logo, podcast.get('logo', None), modified, size=scale_to, img_format=logo_format)),
         ('tags',          False, lambda: get_feed_tags(feed.feed)),
+        ('hub',           False, lambda: get_hub_url(feed.feed)),
         ('episodes',      False, lambda: get_episodes(feed, strip_html)),
         ('content_types', False, lambda: get_podcast_types(podcast)),
     )
@@ -164,6 +165,18 @@ def get_feed_tags(feed):
             tags.append(tag['label'])
 
     return list(set(tags))
+
+
+def get_hub_url(feed):
+    """
+    Returns the Hub URL as specified by
+    http://pubsubhubbub.googlecode.com/svn/trunk/pubsubhubbub-core-0.3.html#discovery
+    """
+
+    for l in feed.get('links', []):
+        if l.rel == 'hub' and l.get('href', None):
+            return l.href
+    return None
 
 
 def get_episodes(feed, strip_html):
