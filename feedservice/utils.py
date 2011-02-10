@@ -88,3 +88,29 @@ def remove_html_tags(html):
 
     return result.strip()
 
+
+# from http://stackoverflow.com/questions/2892931/longest-common-substring-from-more-than-two-strings-python
+# this does not increase asymptotical complexity
+# but can still waste more time than it saves.
+def shortest_of(strings):
+    return min(strings, key=len)
+
+def longest_substr(strings):
+    """
+    Returns the longest common substring of the given strings
+    """
+
+    substr = ""
+    if not strings:
+        return substr
+    reference = shortest_of(strings) #strings[0]
+    length = len(reference)
+    #find a suitable slice i:j
+    for i in xrange(length):
+        #only consider strings long at least len(substr) + 1
+        for j in xrange(i + len(substr) + 1, length):
+            candidate = reference[i:j]
+            if all(candidate in text for text in strings):
+                substr = candidate
+    return substr
+

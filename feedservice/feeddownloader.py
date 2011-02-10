@@ -2,10 +2,12 @@
 # -*- coding: utf-8 -*-
 #
 
+import re
 
 import urlstore
 import youtube
 from mimetype import get_mimetype, check_mimetype, get_podcast_types
+import utils
 
 
 def parse_feeds(feed_urls, *args, **kwargs):
@@ -69,7 +71,7 @@ def parse_feed(feed_url, inline_logo, scale_to, logo_format, strip_html, modifie
         ('logo',          False, lambda: get_podcast_logo(feed)),
         ('logo_data',     False, lambda: get_data_uri(inline_logo, podcast.get('logo', None), modified, size=scale_to, img_format=logo_format)),
         ('tags',          False, lambda: get_feed_tags(feed.feed)),
-        ('episodes',      False, lambda: get_episodes(feed, strip_html, podcast.get('title', None))),
+        ('episodes',      False, lambda: get_episodes(feed, strip_html)),
         ('content_types', False, lambda: get_podcast_types(podcast)),
     )
 
@@ -79,7 +81,7 @@ def parse_feed(feed_url, inline_logo, scale_to, logo_format, strip_html, modifie
     return podcast, podcast.get('urls', None), podcast.get('new_location', None), last_modified
 
 
-def set_val(obj, name, func, remove_tags):
+def set_val(obj, name, func, remove_tags=False):
     from utils import remove_html_tags
 
     val = func()
@@ -164,12 +166,28 @@ def get_feed_tags(feed):
     return list(set(tags))
 
 
-def get_episodes(feed, strip_html, podcast_title):
-    get_episode = lambda e: get_episode_metadata(e, strip_html, podcast_title)
-    return filter(None, map(get_episode, feed.entries))
+def get_episodes(feed, strip_html):
+    get_episode = lambda e: get_episode_metadata(e, strip_html)
+    episodes = filter(None, map(get_episode, feed.entries))
+
+    # We take all non-empty titles
+    titles = filter(None, [e.get('title', None) for e in episodes])
+
+    # get the longest common substring
+    common_title = utils.longest_substr(titles)
+
+    # but consider only the part up to the first number. Otherwise we risk
+    # removing part of the number (eg if a feed contains episodes 100 - 199)
+    common_title = re.search(r'^\D*', common_title).group(0)
+
+    for e in episodes:
+        e.update(get_additional_episode_data(e, common_title))
+
+    return episodes
 
 
-def get_episode_metadata(entry, strip_html, podcast_title=None):
+
+def get_episode_metadata(entry, strip_html):
 
     files = get_episode_files(entry)
     if not files:
@@ -178,8 +196,6 @@ def get_episode_metadata(entry, strip_html, podcast_title=None):
     PROPERTIES = (
         ('guid',        None,  lambda: entry.get('id', None)),
         ('title',       True,  lambda: entry.get('title', None)),
-        ('number',      False, lambda: get_episode_number(entry.get('title', None), podcast_title)),
-        ('short_title', True,  lambda: get_short_title(entry.get('title', None), podcast_title)),
         ('description', True,  lambda: get_episode_summary(entry)),
         ('link',        False, lambda: entry.get('link', None)),
         ('author',      True,  lambda: entry.get('author', entry.get('itunes_author', None))),
@@ -231,32 +247,6 @@ def get_episode_files(entry):
     return urls
 
 
-def get_episode_number(title, podcast_title):
-    import re
-
-    if title is None:
-        return None
-
-    title = title.replace(podcast_title, '').strip()
-    match = re.search(r'^\W*(\d+)', title)
-    if not match:
-        return None
-
-    return int(match.group(1))
-
-
-def get_short_title(title, podcast_title):
-    import re
-
-    if title is None:
-        return None
-
-    title = title.replace(podcast_title, '').strip()
-    title = re.sub(r'^[\W\d]+', '', title)
-    title = re.sub(r'\W+$', '', title)
-    return title
-
-
 def get_episode_summary(entry):
     for key in ('summary', 'subtitle', 'link'):
         value = entry.get(key, None)
@@ -294,3 +284,51 @@ def get_timestamp(entry):
         return datetime(*(entry.updated_parsed)[:6]).strftime('%Y-%m-%dT%H:%M:%S')
     except:
         return None
+
+
+def get_additional_episode_data(episode, common_title):
+    """
+    Returns additional data about an episode that is calculated after
+    the first pass over all episodes
+    """
+
+    PROPERTIES = (
+        ('number',      lambda: get_episode_number(episode.get('title', None), common_title)),
+        ('short_title', lambda: get_short_title(episode.get('title', None), common_title)),
+    )
+
+    data = {}
+    for name, func in PROPERTIES:
+        set_val(data, name, func)
+
+    return data
+
+
+def get_episode_number(title, common_title):
+    """
+    Returns the first number in the non-repeating part of the episode's title
+    """
+
+    if title is None:
+        return None
+
+    title = title.replace(common_title, '').strip()
+    match = re.search(r'^\W*(\d+)', title)
+    if not match:
+        return None
+
+    return int(match.group(1))
+
+
+def get_short_title(title, common_title):
+    """
+    Returns the non-repeating part of the episode's title
+    If an episode number is found, it is removed
+    """
+
+    if title is None:
+        return None
+
+    title = title.replace(common_title, '').strip()
+    title = re.sub(r'^[\W\d]+', '', title)
+    return title
