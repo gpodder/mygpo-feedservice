@@ -113,7 +113,7 @@ def get_data_uri(inline_logo, url, modified_since, **transform_args):
 
     import base64
 
-    if None in (inline_logo, url):
+    if not inline_logo or not url:
         return None
 
     url, content, last_modified = urlstore.get_url(url)
