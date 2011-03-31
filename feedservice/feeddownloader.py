@@ -134,6 +134,8 @@ def parse_feed(feed_url, inline_logo, scale_to, logo_format, strip_html, modifie
     for name, is_text, func in PROPERTIES:
         set_val(podcast, name, func, strip_html and is_text)
 
+    subscribe_at_hub(podcast)
+
     return podcast, podcast.get('urls', None), podcast.get('new_location', None), last_modified
 
 
@@ -144,6 +146,15 @@ def set_val(obj, name, func, remove_tags=False):
     if remove_tags: val = remove_html_tags(val)
     if val is not None:
         obj[name] = val
+
+
+def add_error(feed, key, msg):
+    """ Adds an error entry to the feed """
+
+    if not 'errors' in feed:
+        feed['errors'] = {}
+
+    feed['errors'][key] = msg
 
 
 def get_podcast_logo(feed):
@@ -400,3 +411,22 @@ def get_short_title(title, common_title):
     title = title.replace(common_title, '').strip()
     title = re.sub(r'^[\W\d]+', '', title)
     return title
+
+
+def subscribe_at_hub(feed):
+    """ Tries to subscribe to the feed if it contains a hub URL """
+
+    if not feed.get('hub', False):
+        return
+
+    import pubsubhubbub
+
+    # use the last URL in the redirect chain
+    feed_url = feed['urls'][-1]
+
+    hub_url = feed.get('hub')
+
+    try:
+        pubsubhubbub.Subscriber.subscribe(feed_url, hub_url)
+    except pubsubhubbub.SubscriptionError, e:
+        add_error(feed, 'hub-subscription', repr(e))

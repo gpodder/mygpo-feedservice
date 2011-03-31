@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 import time
 import urllib2
 from email import utils
@@ -50,7 +50,7 @@ def from_cache(url):
     return memcache.get(url)
 
 
-def fetch_url(url, cached=None):
+def fetch_url(url, cached=None, add_expires=timedelta()):
     """
     Fetches the given URL and stores the resulting object in the Cache
     """
@@ -70,7 +70,7 @@ def fetch_url(url, cached=None):
         r = opener.open(request)
         obj = cached or URLObject(url=url)
         obj.content  =                   r.read()
-        obj.expires  = parse_header_date(r.headers.dict.get('expires',       None))
+        obj.expires  = parse_header_date(r.headers.dict.get('expires',       None)) + add_expires
         obj.modified = parse_header_date(r.headers.dict.get('last-modified', None))
         obj.etag     =                   r.headers.dict.get('etag',          None)
 
