@@ -1,4 +1,4 @@
-PYTHON=python2.5
+PYTHON=python
 APPENGINE_SDK=google_appengine
 APPDIR=feedservice
 
