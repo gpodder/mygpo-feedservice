@@ -70,9 +70,14 @@ def fetch_url(url, cached=None, add_expires=timedelta()):
         r = opener.open(request)
         obj = cached or URLObject(url=url)
         obj.content  =                   r.read()
-        obj.expires  = parse_header_date(r.headers.dict.get('expires',       None)) + add_expires
+        obj.expires  = parse_header_date(r.headers.dict.get('expires',       None))
         obj.modified = parse_header_date(r.headers.dict.get('last-modified', None))
         obj.etag     =                   r.headers.dict.get('etag',          None)
+
+        if obj.expires is not None:
+            obj.expires += add_expires
+        elif add_expires:
+            obj.expires = datetime.utcnow() + add_expires
 
         memcache.set(url, obj)
 
