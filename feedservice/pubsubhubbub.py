@@ -165,11 +165,11 @@ class Subscriber(webapp.RequestHandler):
 
         try:
             resp = urllib2.urlopen(huburl, data)
-        except urllib2.HTTPError as e:
+        except urllib2.HTTPError, e:
             msg = 'Could not send subscription to Hub: HTTP Error %d' % e.code
             logging.warn(msg)
             raise SubscriptionError(msg)
-        except Exception as e:
+        except Exception, e:
             msg = 'Could not send subscription to Hub: %s' % repr(e)
             logging.warn(msg)
             raise SubscriptionError(msg)
