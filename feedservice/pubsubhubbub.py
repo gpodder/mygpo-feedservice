@@ -44,9 +44,9 @@ class Subscriber(webapp.RequestHandler):
         lease_seconds = self.request.get('hub.lease_seconds')
         verify_token  = self.request.get('hub.verify_token')
 
-        logging.debug('received subscription-parameters: mode: %(mode)s, ' +
+        logging.debug(('received subscription-parameters: mode: %(mode)s, ' +
                 'topic: %(topic)s, challenge: %(challenge)s, lease_seconds: ' +
-                '%(lease_seconds)s, verify_token: %(verify_token)s' % \
+                '%(lease_seconds)s, verify_token: %(verify_token)s') % \
                 dict(mode=mode, topic=feed_url, challenge=challenge,
                      lease_seconds=lease_seconds, verify_token=verify_token))
 
