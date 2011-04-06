@@ -142,8 +142,9 @@ class Subscriber(webapp.RequestHandler):
         if subscription is not None:
 
             if subscription.mode == mode:
-                logging.info('subscription already exists')
-                return
+                if subscription.verified:
+                    logging.info('subscription already exists')
+                    return
 
             else:
                 logging.info('subscription exists but has wrong mode: ' +
