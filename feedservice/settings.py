@@ -1,2 +1,2 @@
 
-BASE_URL='http://mygpo-feedservice.appengine.com/'
+BASE_URL='http://mygpo-feedservice.appspot.com/'
