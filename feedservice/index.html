@@ -56,12 +56,13 @@
      <li><strong>description</strong>: a description of the feed, potentially including HTML characters</li>
      <li><strong>author</strong>: the feed's author</li>
      <li><strong>language</strong>: the feed's language</li>
-     <li><strong>urls</strong>: the redirect-chain of the URL passed in the <em>url</em> parameter. This can be used to match the requested URLs to the entries in the response.</li>
+     <li><a name="urls" /><strong>urls</strong>: the redirect-chain of the URL passed in the <em>url</em> parameter. This can be used to match the requested URLs to the entries in the response.</li>
      <li><strong>new_location</strong>: the referred to location, if the feed uses <a href="http://cyber.law.harvard.edu/rss/rssRedirect.html">RSS-Redirects</a>. The new location will also be included in the response</li>
-     <li><strong>logo</strong>: the URL of the feed's logo</li>
+     <li><a name="logo" /><strong>logo</strong>: the URL of the feed's logo</li>
      <li><strong>logo_data</strong>: the feed's logo as a <a href="http://en.wikipedia.org/wiki/Data_URI_scheme">data URI</a>, if <em>inline_logo</em> has been used. To save bandwidth, the logo is not included if it changed since the date sent in <em><a href="#if-mod-since">If-Modified-Since</a></em></li>
      <li><strong>content_types</strong>: the content types of the feed, either audio, video or image</li>
      <li><strong>hub</strong>: the endpoint URL of the <a href="http://code.google.com/p/pubsubhubbub/">hub</a> through which the feed is published</li>
+     <li><strong>errors</strong>: a dictionary of occured errors, where the key contains an <a href="#error-codes">error code</a> and the value a string representation.</li>
      <li><strong>episodes</strong>: the list of episodes</li>
     </ul>
    </li>
@@ -78,6 +79,13 @@
      <li><strong>duration</strong>: the episode's duration in seconds</li>
      <li><strong>language</strong>: the episode's language</li>
      <li><strong>files</strong>: a list of all files linked by the episode. Each files is represented by an object containing url, filesize (in Bytes) and mimetype.</li>
+    </ul>
+   </li>
+   <li><a name="error-codes" />Current Error Codes
+    <ul>
+     <li><strong>fetch-feed</strong>: The feed could not be retrieved. The URL is given in the <a href="#urls">urls</a> list</li>
+     <li><strong>fetch-logo</strong>: The feed's logo could not be retrieved. Its URL is given in the <a href="#logo">logo</a> field</li>
+     <li><strong>hub-subscription</strong>: An error occured while subscribing to the feed's hub for instant updates. This is generally not critical for the client</li>
     </ul>
    </li>
   </ul>
