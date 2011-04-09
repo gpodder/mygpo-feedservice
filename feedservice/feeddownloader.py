@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 #
 
-import re, urllib
+import re, urllib, urllib2, logging
 import simplejson as json
 
 from google.appengine.ext import webapp
@@ -106,14 +106,24 @@ def parse_feed(feed_url, inline_logo, scale_to, logo_format, strip_html, modifie
     import feedparser
     from httputils import get_redirects
 
-    feed_url, feed_content, last_modified = urlstore.get_url(feed_url, use_cache)
+    podcast = dict()
+
+    try:
+        feed_url, feed_content, last_modified = urlstore.get_url(feed_url, use_cache)
+
+    except Exception, e:
+        msg = 'could not fetch feed %(feed_url)s: %(msg)s' % \
+            dict(feed_url=feed_url, msg=str(e))
+        add_error(podcast, 'fetch-feed', msg)
+        logging.info(msg)
+        podcast['urls'] = [feed_url]
+        return podcast, [feed_url], None, None
+
 
     if last_modified and modified and last_modified <= modified:
         return None, None, None, None
 
     feed = feedparser.parse(feed_content)
-
-    podcast = dict()
 
     PROPERTIES = (
         ('title',         True,  lambda: feed.feed.get('title', None)),
@@ -124,7 +134,7 @@ def parse_feed(feed_url, inline_logo, scale_to, logo_format, strip_html, modifie
         ('urls',          False, lambda: get_redirects(feed_url)),
         ('new_location',  False, lambda: feed.feed.get('newlocation', None)),
         ('logo',          False, lambda: get_podcast_logo(feed)),
-        ('logo_data',     False, lambda: get_data_uri(inline_logo, podcast.get('logo', None), modified, size=scale_to, img_format=logo_format)),
+        ('logo_data',     False, lambda: get_podcast_logo_inline(podcast, inline_logo, modified, size=scale_to, img_format=logo_format)),
         ('tags',          False, lambda: get_feed_tags(feed.feed)),
         ('hub',           False, lambda: get_hub_url(feed.feed)),
         ('episodes',      False, lambda: get_episodes(feed, strip_html)),
@@ -171,16 +181,35 @@ def get_podcast_logo(feed):
     return cover_art
 
 
-def get_data_uri(inline_logo, url, modified_since, **transform_args):
+def get_podcast_logo_inline(podcast, inline_logo, modified, **transform_args):
+    """ Fetches the feed's logo and returns its data URI """
+
+    if not inline_logo:
+        return None
+
+    logo_url = podcast.get('logo', None)
+
+    if not logo_url:
+        return None
+
+    try:
+        return get_data_uri(logo_url, modified, **transform_args)
+
+    except Exception, e:
+        msg = 'could not fetch feed logo %(logo_url)s: %(msg)s' % \
+            dict(logo_url=logo_url, msg=str(e))
+        add_error(podcast, 'fetch-logo', msg)
+        logging.info(msg)
+        return None
+
+
+def get_data_uri(url, modified_since, **transform_args):
     """
     Fetches the logo, applies the specified transformations and
     returns the Data URI for the resulting image
     """
 
     import base64
-
-    if not inline_logo or not url:
-        return None
 
     url, content, last_modified = urlstore.get_url(url)
 
