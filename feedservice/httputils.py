@@ -23,7 +23,7 @@ def get_redirects(url):
     # include un-sanitized URL for easy matching of
     #response to request URLs
     if urls[0] != url:
-        urls = [url] + urls
+        urls.insert(0, url)
 
     return urls
 
@@ -81,3 +81,12 @@ def select_matching_option(supported_values, accepted_values):
         return supported_values[0]
     else:
         return None
+
+def get_data_uri(data, mimetype):
+    """
+    returns the Data URI for the data
+    """
+
+    import base64
+    encoded = base64.b64encode(data)
+    return 'data:%s;base64,%s' % (mimetype, encoded)
