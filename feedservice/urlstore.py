@@ -19,7 +19,7 @@ class URLObject(db.Model):
     last_mod_utc = db.DateTimeProperty(required=False)
 
     def expired(self):
-        return self.expires and self.expires <= datetime.utcnow()
+        return not self.expires or self.expires <= datetime.utcnow()
 
     def valid(self):
         return len(self.content) > 0
