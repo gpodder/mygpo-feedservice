@@ -51,6 +51,25 @@ def parse_time(value):
     return int(value)
 
 
+def strip_html(f):
+    """ Decorator to strip HTML tags from the results of bound methods
+
+    Checks if self has the attribute 'strip_html' set """
+
+    def _tmp(self, *args, **kwargs):
+
+        strip_html = getattr(self, 'strip_html', False)
+
+        val = f(self, *args, **kwargs)
+        if strip_html:
+            from utils import remove_html_tags
+            val = remove_html_tags(val)
+
+        return val
+
+    return _tmp
+
+
 # taken from gpodder.util
 def remove_html_tags(html):
     """
