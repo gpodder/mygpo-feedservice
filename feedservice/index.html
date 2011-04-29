@@ -63,6 +63,8 @@
      <li><strong>content_types</strong>: the content types of the feed, either audio, video or image</li>
      <li><strong>hub</strong>: the endpoint URL of the <a href="http://code.google.com/p/pubsubhubbub/">hub</a> through which the feed is published</li>
      <li><strong>errors</strong>: a dictionary of occured errors, where the key contains an <a href="#error-codes">error code</a> and the value a string representation.</li>
+     <li><strong>http_last_modified</strong>: the Unix timestamp of the last modification of the feed (according to the HTTP header).</li>
+     <li><strong>http_etag</strong>: the HTTP E-Tag of the feed</li>
      <li><strong>episodes</strong>: the list of episodes</li>
     </ul>
    </li>

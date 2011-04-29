@@ -6,12 +6,14 @@ import urllib
 import time
 import simplejson as json
 import email.utils
+import logging
 import cgi
 
 from google.appengine.ext import webapp
 
+from feed import Feed
+import urlstore
 import httputils
-import feed
 
 
 class Parser(webapp.RequestHandler):
@@ -23,16 +25,21 @@ class Parser(webapp.RequestHandler):
     def get(self):
         urls = map(urllib.unquote, self.request.get_all('url'))
 
-        inline_logo = self.request.get_range('inline_logo', 0, 1, default=0)
-        scale_to = self.request.get_range('scale_logo', 0, 1, default=0)
-        logo_format = self.request.get('logo_format')
-        strip_html = self.request.get_range('strip_html', 0, 1, default=0)
-        use_cache = self.request.get_range('use_cache', 0, 1, default=1)
+        parse_args = dict(
+            inline_logo = self.request.get_range('inline_logo', 0, 1, default=0),
+            scale_to    = self.request.get_range('scale_logo',  0, 1, default=0),
+            logo_format = self.request.get('logo_format'),
+            strip_html  = self.request.get_range('strip_html',  0, 1, default=0),
+            use_cache   = self.request.get_range('use_cache',   0, 1, default=1),
+        )
+
         modified = self.request.headers.get('If-Modified-Since', None)
-        accept = self.request.headers.get('Accept', 'application/json')
+        accept   = self.request.headers.get('Accept', 'application/json')
 
         if urls:
-            podcasts, last_modified = parse_feeds(urls, inline_logo, scale_to, logo_format, strip_html, modified, use_cache)
+            podcasts = parse_feeds(urls, modified, **parse_args)
+
+            last_modified = None #TODO: set to server timestamp
             self.send_response(podcasts, last_modified, accept)
 
         else:
@@ -65,7 +72,7 @@ class Parser(webapp.RequestHandler):
         self.response.out.write(content)
 
 
-def parse_feeds(feed_urls, *args, **kwargs):
+def parse_feeds(feed_urls, modified_since, **kwargs):
     """
     Parses several feeds, specified by feed_urls and returns their JSON
     objects and the latest of their modification dates. RSS-Redirects are
@@ -74,24 +81,52 @@ def parse_feeds(feed_urls, *args, **kwargs):
 
     visited_urls = set()
     result = []
-    last_modified = None
 
     for url in feed_urls:
 
-        res, visited, new, last_mod = feed.Feed.parse(url, *args, **kwargs)
+        feed = parse_feed(url, modified_since, **kwargs)
 
-        if not res:
+        if not feed:
             continue
 
-        visited = visited or []
+        visited  = feed.get('urls', [])
+        new_loc  = feed.get('new_location', None)
 
         # we follow RSS-redirects automatically
-        if new and new not in (list(visited_urls) + feed_urls):
-            feed_urls.append(new)
+        if new_loc and new_loc not in (list(visited_urls) + feed_urls):
+            feed_urls.append(new_loc)
 
-        if not last_modified or (last_mod and last_mod > last_modified):
-            last_modified = last_mod
+        result.append(feed)
 
-        result.append(res)
+    return result
 
-    return result, last_modified
+
+def parse_feed(feed_url, modified_since, use_cache, **kwargs):
+    """
+    Parses a feed and returns its JSON object, a list of urls that refer to
+    this feed, an outgoing redirect and the timestamp of the last modification
+    of the feed
+    """
+
+    try:
+        feed_url, feed_content, last_modified, etag = urlstore.get_url(feed_url, use_cache)
+
+    except Exception, e:
+        # create a dummy feed to hold the error message and the feed URL
+        feed = Feed()
+        msg = 'could not fetch feed %(feed_url)s: %(msg)s' % \
+            dict(feed_url=feed_url, msg=str(e))
+        feed.add_error('fetch-feed', msg)
+        logging.info(msg)
+        feed.add_url(feed_url)
+        raise
+        return feed
+
+    if last_modified and modified_since and last_modified <= modified_since:
+        return None
+
+    # we can select between special-case classes later
+    feed_cls = Feed
+
+    feed = feed_cls.from_blob(feed_url, feed_content, last_modified, etag, **kwargs)
+    return feed

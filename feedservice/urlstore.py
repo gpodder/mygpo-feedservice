@@ -38,7 +38,7 @@ def get_url(url, use_cache=True):
     if not cached or cached.expired() or not cached.valid():
         resp = fetch_url(url, cached)
     else:
-        resp = cached.url, cached.content, cached.modified
+        resp = cached.url, cached.content, cached.modified, cached.etag
 
     return resp
 
@@ -88,7 +88,7 @@ def fetch_url(url, cached=None, add_expires=timedelta()):
         else:
             raise
 
-    return obj.url, obj.content, obj.modified
+    return obj.url, obj.content, obj.modified, obj.etag
 
 
 def parse_header_date(date_str):

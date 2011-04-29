@@ -6,6 +6,8 @@ import re
 import logging
 import time
 
+import feedparser
+
 import urlstore
 import httputils
 import youtube
@@ -18,64 +20,50 @@ class Feed(dict):
     """ A parsed Feed """
 
 
-    def __init__(self, strip_html):
+    def __init__(self, strip_html=False, last_modified=None, etag=None):
         self.strip_html = strip_html
+        self.last_modified = last_modified
+        self.etag = etag
 
 
     @classmethod
-    def parse(cls, feed_url, inline_logo, scale_to, logo_format, strip_html, modified, use_cache):
+    def from_blob(cls, feed_url, feed_content, last_modified, etag, inline_logo, scale_to, logo_format, strip_html):
         """
         Parses a feed and returns its JSON object, a list of urls that refer to
         this feed, an outgoing redirect and the timestamp of the last modification
         of the feed
         """
 
-        import feedparser
+        feed_res = feedparser.parse(feed_content)
 
-        feed_obj = Feed(strip_html)
-
-        try:
-            feed_url, feed_content, last_modified = urlstore.get_url(feed_url, use_cache)
-            feed_obj.last_modified = last_modified
-
-        except Exception, e:
-            msg = 'could not fetch feed %(feed_url)s: %(msg)s' % \
-                dict(feed_url=feed_url, msg=str(e))
-            feed_obj.add_error('fetch-feed', msg)
-            logging.info(msg)
-            feed_obj.add_url(feed_url)
-            return feed_obj, None, None, None
-
-
-        if last_modified and modified and last_modified <= modified:
-            return None, None, None, None
-
-        feed = feedparser.parse(feed_content)
+        feed = Feed(strip_html, last_modified, etag)
 
         PROPERTIES = (
-            ('title',         lambda: feed_obj.get_title(feed)),
-            ('link',          lambda: feed_obj.get_link(feed)),
-            ('description',   lambda: feed_obj.get_description(feed)),
-            ('author',        lambda: feed_obj.get_author(feed)),
-            ('language',      lambda: feed_obj.get_language(feed)),
-            ('urls',          lambda: feed_obj.get_urls(feed_url)),
-            ('new_location',  lambda: feed_obj.get_new_location(feed)),
-            ('logo',          lambda: feed_obj.get_podcast_logo(feed)),
-            ('logo_data',     lambda: feed_obj.get_podcast_logo_inline(inline_logo, modified, size=scale_to, img_format=logo_format)),
-            ('tags',          lambda: feed_obj.get_feed_tags(feed.feed)),
-            ('hub',           lambda: feed_obj.get_hub_url(feed.feed)),
-            ('episodes',      lambda: feed_obj.get_episodes(feed, strip_html)),
-            ('content_types', lambda: feed_obj.get_podcast_types()),
+            ('title',              lambda: feed.get_title(feed_res)),
+            ('link',               lambda: feed.get_link(feed_res)),
+            ('description',        lambda: feed.get_description(feed_res)),
+            ('author',             lambda: feed.get_author(feed_res)),
+            ('language',           lambda: feed.get_language(feed_res)),
+            ('urls',               lambda: feed.get_urls(feed_url)),
+            ('new_location',       lambda: feed.get_new_location(feed_res)),
+            ('logo',               lambda: feed.get_podcast_logo(feed_res)),
+            ('logo_data',          lambda: feed.get_podcast_logo_inline(inline_logo, last_modified, size=scale_to, img_format=logo_format)),
+            ('tags',               lambda: feed.get_feed_tags(feed_res.feed)),
+            ('hub',                lambda: feed.get_hub_url(feed_res.feed)),
+            ('episodes',           lambda: feed.get_episodes(feed_res, strip_html)),
+            ('content_types',      lambda: feed.get_podcast_types()),
+            ('http_last_modified', lambda: feed.get_last_modified()),
+            ('http_etag',          lambda: feed.get_etag()),
         )
 
         for name, func in PROPERTIES:
             val = func()
             if val is not None:
-                feed_obj[name] = val
+                feed[name] = val
 
-        feed_obj.subscribe_at_hub()
+        feed.subscribe_at_hub()
 
-        return feed_obj, feed_obj.get('urls', None), feed_obj.get('new_location', None), last_modified
+        return feed
 
 
     def add_error(self, key, msg):
@@ -155,7 +143,7 @@ class Feed(dict):
             return None
 
         try:
-            url, content, last_modified = urlstore.get_url(logo_url)
+            url, content, last_modified, etag = urlstore.get_url(logo_url)
 
         except Exception, e:
             msg = 'could not fetch feed logo %(logo_url)s: %(msg)s' % \
@@ -251,6 +239,17 @@ class Feed(dict):
     def get_podcast_types(self):
         from mimetype import get_podcast_types
         return get_podcast_types(self)
+
+
+    def get_last_modified(self):
+        try:
+            return int(time.mktime(self.last_modified.timetuple()))
+        except:
+            return None
+
+
+    def get_etag(self):
+        return self.etag
 
 
     def subscribe_at_hub(self):
@@ -402,7 +401,6 @@ class Episode(dict):
 
     @staticmethod
     def get_timestamp(entry):
-        from datetime import datetime
         try:
             return int(time.mktime(entry.updated_parsed))
         except:
