@@ -15,7 +15,8 @@ class URLObject(db.Model):
     content = db.Blob()
     etag = db.StringProperty(required=False)
     expires = db.DateTimeProperty(required=False)
-    modified = db.DateTimeProperty(required=False)
+    last_mod_up = db.DateTimeProperty(required=False)
+    last_mod_utc = db.DateTimeProperty(required=False)
 
     def expired(self):
         return self.expires and self.expires <= datetime.utcnow()
@@ -24,7 +25,9 @@ class URLObject(db.Model):
         return len(self.content) > 0
 
     def __repr__(self):
-        return '%s (%s, %s, %s)' % (self.url, self.etag, self.expires, self.modified)
+        return '%(url)s (%(etag)s, %(expires)s, %(last_mod_up)s)' % \
+            dict(url=self.url, etag=self.etag,
+                 expires=self.expires, last_mod_up=self.last_mod_up)
 
 
 def get_url(url, use_cache=True):
@@ -38,7 +41,7 @@ def get_url(url, use_cache=True):
     if not cached or cached.expired() or not cached.valid():
         resp = fetch_url(url, cached)
     else:
-        resp = cached.url, cached.content, cached.modified, cached.etag
+        resp = cached.url, cached.content, cached.last_mod_up, cached.last_mod_utc, cached.etag
 
     return resp
 
@@ -59,8 +62,8 @@ def fetch_url(url, cached=None, add_expires=timedelta()):
     request.add_header('User-Agent', USER_AGENT)
     opener = urllib2.build_opener()
 
-    if getattr(cached, 'modified', False):
-        lm_str = utils.formatdate(time.mktime(cached.modified.timetuple()))
+    if getattr(cached, 'last_modified', False):
+        lm_str = utils.formatdate(time.mktime(cached.last_mod_up.timetuple()))
         request.add_header('If-Modified-Since', lm_str)
 
     if getattr(cached, 'etag', False):
@@ -69,10 +72,11 @@ def fetch_url(url, cached=None, add_expires=timedelta()):
     try:
         r = opener.open(request)
         obj = cached or URLObject(url=url)
-        obj.content  =                   r.read()
-        obj.expires  = parse_header_date(r.headers.dict.get('expires',       None))
-        obj.modified = parse_header_date(r.headers.dict.get('last-modified', None))
-        obj.etag     =                   r.headers.dict.get('etag',          None)
+        obj.content = r.read()
+        obj.expires = parse_header_date(r.headers.dict.get('expires', None))
+        obj.last_mod_up = parse_header_date(r.headers.dict.get('last-modified', None))
+        obj.last_mod_utc = datetime.utcnow()
+        obj.etag = r.headers.dict.get('etag', None)
 
         if obj.expires is not None:
             obj.expires += add_expires
@@ -88,7 +92,7 @@ def fetch_url(url, cached=None, add_expires=timedelta()):
         else:
             raise
 
-    return obj.url, obj.content, obj.modified, obj.etag
+    return obj.url, obj.content, obj.last_mod_up, obj.last_mod_utc, obj.etag
 
 
 def parse_header_date(date_str):

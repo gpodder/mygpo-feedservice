@@ -8,6 +8,7 @@ import simplejson as json
 import email.utils
 import logging
 import cgi
+from datetime import datetime
 
 from google.appengine.ext import webapp
 
@@ -33,21 +34,21 @@ class Parser(webapp.RequestHandler):
             use_cache   = self.request.get_range('use_cache',   0, 1, default=1),
         )
 
-        modified = self.request.headers.get('If-Modified-Since', None)
-        accept   = self.request.headers.get('Accept', 'application/json')
+        mod_since_utc = self.request.headers.get('If-Modified-Since', None)
+        accept = self.request.headers.get('Accept', 'application/json')
 
         if urls:
-            podcasts = parse_feeds(urls, modified, **parse_args)
+            podcasts = parse_feeds(urls, mod_since_utc, **parse_args)
 
-            last_modified = None #TODO: set to server timestamp
-            self.send_response(podcasts, last_modified, accept)
+            last_mod_utc = datetime.utcnow()
+            self.send_response(podcasts, last_mod_utc, accept)
 
         else:
             self.response.set_status(400)
             self.response.out.write('parameter url missing')
 
 
-    def send_response(self, podcasts, last_modified, formats):
+    def send_response(self, podcasts, last_mod_utc, formats):
         self.response.headers.add_header('Vary', 'Accept, User-Agent, Accept-Encoding')
 
         format = httputils.select_matching_option(['text/html', 'application/json'], formats)
@@ -55,7 +56,7 @@ class Parser(webapp.RequestHandler):
         if format in (None, 'application/json'): #serve json as default
             content_type = 'application/json'
             content = json.dumps(podcasts, sort_keys=True, indent=None, separators=(',', ':'))
-            self.response.headers.add_header('Last-Modified', email.utils.formatdate(time.mktime(last_modified.timetuple())))
+            self.response.headers.add_header('Last-Modified', email.utils.formatdate(time.mktime(last_mod_utc.timetuple())))
 
 
         else:
@@ -72,7 +73,7 @@ class Parser(webapp.RequestHandler):
         self.response.out.write(content)
 
 
-def parse_feeds(feed_urls, modified_since, **kwargs):
+def parse_feeds(feed_urls, mod_since_utc, **kwargs):
     """
     Parses several feeds, specified by feed_urls and returns their JSON
     objects and the latest of their modification dates. RSS-Redirects are
@@ -84,7 +85,7 @@ def parse_feeds(feed_urls, modified_since, **kwargs):
 
     for url in feed_urls:
 
-        feed = parse_feed(url, modified_since, **kwargs)
+        feed = parse_feed(url, mod_since_utc, **kwargs)
 
         if not feed:
             continue
@@ -101,7 +102,7 @@ def parse_feeds(feed_urls, modified_since, **kwargs):
     return result
 
 
-def parse_feed(feed_url, modified_since, use_cache, **kwargs):
+def parse_feed(feed_url, mod_since_utc, use_cache, **kwargs):
     """
     Parses a feed and returns its JSON object, a list of urls that refer to
     this feed, an outgoing redirect and the timestamp of the last modification
@@ -109,7 +110,7 @@ def parse_feed(feed_url, modified_since, use_cache, **kwargs):
     """
 
     try:
-        feed_url, feed_content, last_modified, etag = urlstore.get_url(feed_url, use_cache)
+        feed_url, feed_content, last_mod_up, last_mod_utc, etag = urlstore.get_url(feed_url, use_cache)
 
     except Exception, e:
         # create a dummy feed to hold the error message and the feed URL
@@ -122,11 +123,11 @@ def parse_feed(feed_url, modified_since, use_cache, **kwargs):
         raise
         return feed
 
-    if last_modified and modified_since and last_modified <= modified_since:
+    if last_mod_utc and mod_since_utc and last_mod_utc <= mod_since_utc:
         return None
 
     # we can select between special-case classes later
     feed_cls = Feed
 
-    feed = feed_cls.from_blob(feed_url, feed_content, last_modified, etag, **kwargs)
+    feed = feed_cls.from_blob(feed_url, feed_content, last_mod_up, etag, **kwargs)
     return feed

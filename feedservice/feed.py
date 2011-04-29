@@ -20,14 +20,14 @@ class Feed(dict):
     """ A parsed Feed """
 
 
-    def __init__(self, strip_html=False, last_modified=None, etag=None):
+    def __init__(self, strip_html=False, last_mod_up=None, etag=None):
         self.strip_html = strip_html
-        self.last_modified = last_modified
+        self.last_mod_up = last_mod_up
         self.etag = etag
 
 
     @classmethod
-    def from_blob(cls, feed_url, feed_content, last_modified, etag, inline_logo, scale_to, logo_format, strip_html):
+    def from_blob(cls, feed_url, feed_content, last_mod_up, etag, inline_logo, scale_to, logo_format, strip_html):
         """
         Parses a feed and returns its JSON object, a list of urls that refer to
         this feed, an outgoing redirect and the timestamp of the last modification
@@ -36,7 +36,7 @@ class Feed(dict):
 
         feed_res = feedparser.parse(feed_content)
 
-        feed = Feed(strip_html, last_modified, etag)
+        feed = Feed(strip_html, last_mod_up, etag)
 
         PROPERTIES = (
             ('title',              lambda: feed.get_title(feed_res)),
@@ -47,7 +47,7 @@ class Feed(dict):
             ('urls',               lambda: feed.get_urls(feed_url)),
             ('new_location',       lambda: feed.get_new_location(feed_res)),
             ('logo',               lambda: feed.get_podcast_logo(feed_res)),
-            ('logo_data',          lambda: feed.get_podcast_logo_inline(inline_logo, last_modified, size=scale_to, img_format=logo_format)),
+            ('logo_data',          lambda: feed.get_podcast_logo_inline(inline_logo, last_mod_up, size=scale_to, img_format=logo_format)),
             ('tags',               lambda: feed.get_feed_tags(feed_res.feed)),
             ('hub',                lambda: feed.get_hub_url(feed_res.feed)),
             ('episodes',           lambda: feed.get_episodes(feed_res, strip_html)),
@@ -131,7 +131,7 @@ class Feed(dict):
         return cover_art
 
 
-    def get_podcast_logo_inline(self, inline_logo, modified_since, **transform_args):
+    def get_podcast_logo_inline(self, inline_logo, mod_since_up, **transform_args):
         """ Fetches the feed's logo and returns its data URI """
 
         if not inline_logo:
@@ -143,7 +143,7 @@ class Feed(dict):
             return None
 
         try:
-            url, content, last_modified, etag = urlstore.get_url(logo_url)
+            url, content, last_mod_up, last_mod_utc, etag = urlstore.get_url(logo_url)
 
         except Exception, e:
             msg = 'could not fetch feed logo %(logo_url)s: %(msg)s' % \
@@ -152,7 +152,7 @@ class Feed(dict):
             logging.info(msg)
             return None
 
-        if last_modified and modified_since and last_modified <= modified_since:
+        if last_mod_up and mod_since_up and last_mod_up <= mod_since_up:
             return None
 
         mimetype = get_mimetype(None, url)
@@ -243,7 +243,7 @@ class Feed(dict):
 
     def get_last_modified(self):
         try:
-            return int(time.mktime(self.last_modified.timetuple()))
+            return int(time.mktime(self.last_mod_up.timetuple()))
         except:
             return None
 
