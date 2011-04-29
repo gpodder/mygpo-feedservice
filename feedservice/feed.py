@@ -75,6 +75,15 @@ class Feed(dict):
         self['errors'][key] = msg
 
 
+    def add_warning(self, key, msg):
+        """ Adds a warning entry to the feed """
+
+        if not 'warnings' in self:
+            self['warnings'] = {}
+
+        self['warnings'][key] = msg
+
+
     @strip_html
     def get_title(self, feed):
         return feed.feed.get('title', None)
@@ -148,7 +157,7 @@ class Feed(dict):
         except Exception, e:
             msg = 'could not fetch feed logo %(logo_url)s: %(msg)s' % \
                 dict(logo_url=logo_url, msg=str(e))
-            self.add_error('fetch-logo', msg)
+            self.add_warning('fetch-logo', msg)
             logging.info(msg)
             return None
 
@@ -268,7 +277,7 @@ class Feed(dict):
         try:
             pubsubhubbub.Subscriber.subscribe(feed_url, hub_url)
         except pubsubhubbub.SubscriptionError, e:
-            self.add_error('hub-subscription', repr(e))
+            self.add_warning('hub-subscription', repr(e))
 
 
 class Episode(dict):
