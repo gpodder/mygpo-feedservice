@@ -6,10 +6,19 @@ class RedirectCollector(urllib2.HTTPRedirectHandler):
 
     def __init__(self, *args, **kwargs):
         self.urls = []
+        self.permanent_redirect = None
 
     def redirect_request(self, req, fp, code, msg, hdrs, newurl):
-        self.urls.append(newurl)
-        return urllib2.HTTPRedirectHandler.redirect_request(self, req, fp, code, msg, hdrs, newurl)
+
+        # automatically follow non-permanent redirects
+        if code == 302:
+            self.urls.append(newurl)
+            return urllib2.HTTPRedirectHandler.redirect_request(self, req, fp, code, msg, hdrs, newurl)
+
+        # record permanent redirects but don't follow
+        elif code == 301:
+            self.permanent_redirect = newurl
+            return None
 
 
 def get_redirects(url):
@@ -25,7 +34,7 @@ def get_redirects(url):
     if urls[0] != url:
         urls.insert(0, url)
 
-    return urls
+    return urls, collector.permanent_redirect
 
 
 def basic_sanitizing(url):

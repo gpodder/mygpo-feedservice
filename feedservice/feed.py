@@ -114,15 +114,16 @@ class Feed(dict):
         self['urls'].append(url)
 
 
-    @staticmethod
-    def get_urls(feed_url):
+    def get_urls(self, feed_url):
         from httputils import get_redirects
-        return get_redirects(feed_url)
+        urls, self.new_loc = get_redirects(feed_url)
+        return urls
 
 
-    @staticmethod
-    def get_new_location(feed):
-        return feed.feed.get('newlocation', None)
+    def get_new_location(self, feed):
+        # self.new_loc is set by get_urls()
+        return getattr(self, 'new_loc', False) or \
+               feed.feed.get('newlocation', None)
 
 
     @staticmethod

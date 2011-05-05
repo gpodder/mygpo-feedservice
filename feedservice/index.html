@@ -56,8 +56,8 @@
      <li><strong>description</strong>: a description of the feed, potentially including HTML characters</li>
      <li><strong>author</strong>: the feed's author</li>
      <li><strong>language</strong>: the feed's language</li>
-     <li><a name="urls" /><strong>urls</strong>: the redirect-chain of the URL passed in the <em>url</em> parameter. This can be used to match the requested URLs to the entries in the response.</li>
-     <li><strong>new_location</strong>: the referred to location, if the feed uses <a href="http://cyber.law.harvard.edu/rss/rssRedirect.html">RSS-Redirects</a>. The new location will also be included in the response</li>
+     <li><a name="urls" /><strong>urls</strong>: the redirect-chain of the URL passed in the <em>url</em> parameter. This can be used to match the requested URLs to the entries in the response. A permanent redirect is not included here but given in the <a href="#new_location">new_location</a> field, as it indicates that the client should update the feed's location.</li>
+     <li><a name="new_location" /><strong>new_location</strong>: the referred to location, if the feed uses a permanent HTTP redirect or <a href="http://cyber.law.harvard.edu/rss/rssRedirect.html">RSS-Redirects</a>. The new location will also be fetched, parsed and included in the response</li>
      <li><a name="logo" /><strong>logo</strong>: the URL of the feed's logo</li>
      <li><strong>logo_data</strong>: the feed's logo as a <a href="http://en.wikipedia.org/wiki/Data_URI_scheme">data URI</a>, if <em>inline_logo</em> has been used. To save bandwidth, the logo is not included if it changed since the date sent in <em><a href="#if-mod-since">If-Modified-Since</a></em></li>
      <li><strong>content_types</strong>: the content types of the feed, either audio, video or image</li>
