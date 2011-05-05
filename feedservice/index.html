@@ -63,6 +63,7 @@
      <li><strong>content_types</strong>: the content types of the feed, either audio, video or image</li>
      <li><strong>hub</strong>: the endpoint URL of the <a href="http://code.google.com/p/pubsubhubbub/">hub</a> through which the feed is published</li>
      <li><strong>errors</strong>: a dictionary of occured errors, where the key contains an <a href="#error-codes">error code</a> and the value a string representation.</li>
+     <li><strong>warnings</strong>: a dictionary of warnings. The key contains an <a href="#warning-codes">warning code</a> and the value a string representation.</li>
      <li><strong>http_last_modified</strong>: the Unix timestamp of the last modification of the feed (according to the HTTP header).</li>
      <li><strong>http_etag</strong>: the HTTP E-Tag of the feed</li>
      <li><strong>episodes</strong>: the list of episodes</li>
@@ -86,8 +87,12 @@
    <li><a name="error-codes" />Current Error Codes
     <ul>
      <li><strong>fetch-feed</strong>: The feed could not be retrieved. The URL is given in the <a href="#urls">urls</a> list</li>
+    </ul>
+   </li>
+   <li><a name="warning-codes" />Current Warning Codes
+    <ul>
      <li><strong>fetch-logo</strong>: The feed's logo could not be retrieved. Its URL is given in the <a href="#logo">logo</a> field</li>
-     <li><strong>hub-subscription</strong>: An error occured while subscribing to the feed's hub for instant updates. This is generally not critical for the client</li>
+     <li><strong>hub-subscription</strong>: An error occured while subscribing to the feed's hub for instant updates.</li>
     </ul>
    </li>
   </ul>
