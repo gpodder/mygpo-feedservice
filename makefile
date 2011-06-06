@@ -1,4 +1,4 @@
-PYTHON=python
+PYTHON=python2.5
 APPENGINE_SDK=google_appengine
 APPDIR=feedservice
 APPID=mygpo-feedservice

@@ -5,6 +5,7 @@ from email import utils
 
 from google.appengine.ext import db
 from google.appengine.api import memcache
+from google.appengine.api.urlfetch import DownloadError
 
 
 USER_AGENT = 'mygpo-feedservice +http://mygpo-feedservice.appspot.com/'
@@ -70,8 +71,8 @@ def fetch_url(url, cached=None, add_expires=timedelta()):
         request.add_header('If-None-Match', cached.etag)
 
     try:
-        r = opener.open(request)
         obj = cached or URLObject(url=url)
+        r = opener.open(request)
         obj.content = r.read()
         obj.expires = parse_header_date(r.headers.dict.get('expires', None))
         obj.last_mod_up = parse_header_date(r.headers.dict.get('last-modified', None))
@@ -88,9 +89,10 @@ def fetch_url(url, cached=None, add_expires=timedelta()):
     except urllib2.HTTPError, e:
         if e.code == 304:
             obj = cached
-            pass
         else:
-            raise
+            pass
+    except DownloadError:
+        pass
 
     return obj.url, obj.content, obj.last_mod_up, obj.last_mod_utc, obj.etag
 

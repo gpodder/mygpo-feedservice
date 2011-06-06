@@ -163,6 +163,8 @@ class Subscriber(webapp.RequestHandler):
         data = urllib.urlencode(data)
         logging.debug('sending request: %s' % repr(data))
 
+        resp = None
+
         try:
             resp = urllib2.urlopen(huburl, data)
         except urllib2.HTTPError, e:
@@ -176,10 +178,11 @@ class Subscriber(webapp.RequestHandler):
             raise SubscriptionError(msg)
 
 
-        status = resp.code
-        if status != 204:
-            logging.error('received incorrect status %d' % status)
-            raise SubscriptionError('Subscription has not been accepted by the Hub')
+        if resp:
+            status = resp.code
+            if status != 204:
+                logging.error('received incorrect status %d' % status)
+                raise SubscriptionError('Subscription has not been accepted by the Hub')
 
 
 

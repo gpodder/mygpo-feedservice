@@ -10,7 +10,6 @@ import feedparser
 
 import urlstore
 import httputils
-import youtube
 from utils import strip_html, parse_time, longest_substr
 from mimetype import get_mimetype, check_mimetype
 
@@ -19,11 +18,21 @@ from mimetype import get_mimetype, check_mimetype
 class Feed(dict):
     """ A parsed Feed """
 
-
     def __init__(self, strip_html=False, last_mod_up=None, etag=None):
         self.strip_html = strip_html
         self.last_mod_up = last_mod_up
         self.etag = etag
+
+
+    @staticmethod
+    def handles_url(url):
+        """ Generic class that can handle every RSS/Atom feed """
+        return True
+
+
+    @property
+    def episode_cls(self):
+        return Episode
 
 
     @classmethod
@@ -126,8 +135,7 @@ class Feed(dict):
                feed.feed.get('newlocation', None)
 
 
-    @staticmethod
-    def get_podcast_logo(feed):
+    def get_podcast_logo(self, feed):
         cover_art = None
         image = feed.feed.get('image', None)
         if image is not None:
@@ -135,8 +143,6 @@ class Feed(dict):
                 cover_art = getattr(image, key, None)
                 if cover_art:
                     break
-
-        cover_art = youtube.get_real_cover(feed.feed.get('link', None)) or cover_art
 
         return cover_art
 
@@ -225,9 +231,8 @@ class Feed(dict):
         return None
 
 
-    @staticmethod
-    def get_episodes(feed, strip_html):
-        get_episode = lambda e: Episode.parse(e, strip_html)
+    def get_episodes(self, feed, strip_html):
+        get_episode = lambda e: self.episode_cls.parse(e, strip_html)
         episodes = filter(None, map(get_episode, feed.entries))
 
         # We take all non-empty titles
@@ -292,7 +297,7 @@ class Episode(dict):
     @classmethod
     def parse(cls, entry, strip_html):
 
-        episode = Episode(strip_html)
+        episode = cls(strip_html)
         files = episode.get_episode_files(entry)
 
         if not files:
@@ -336,8 +341,7 @@ class Episode(dict):
         return entry.get('author', entry.get('itunes_author', None))
 
 
-    @staticmethod
-    def get_episode_files(entry):
+    def get_episode_files(self, entry):
         """Get the download / episode URL of a feedparser entry"""
 
         urls = {}
@@ -347,8 +351,8 @@ class Episode(dict):
                 mimetype = get_mimetype(enclosure.get('type', ''), enclosure['href'])
                 if check_mimetype(mimetype):
                     try:
-                        filesize = int(enclosure['length'])
-                    except ValueError:
+                        filesize = int(enclosure.get('length', None))
+                    except (TypeError, ValueError):
                         filesize = None
                     urls[enclosure['href']] = (mimetype, filesize)
 
@@ -358,16 +362,6 @@ class Episode(dict):
                 mimetype = get_mimetype(media.get('type', ''), media['url'])
                 if check_mimetype(mimetype):
                     urls[media['url']] = (mimetype, None)
-
-        links = getattr(entry, 'links', [])
-        for link in links:
-            if not hasattr(link, 'href'):
-                continue
-
-            if youtube.is_video_link(link['href']):
-                urls[link['href']] = ('application/x-youtube', None)
-
-            # XXX: Implement link detection as in gPodder
 
         return urls
 

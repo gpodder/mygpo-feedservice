@@ -47,6 +47,9 @@ def get_type(mimetype):
 def check_mimetype(mimetype):
     """Checks if the given mimetype can be processed by mygpo
     """
+    if not mimetype:
+        return False
+
     if '/' in mimetype:
         category, type = mimetype.split('/', 1)
         if category in ('audio', 'video', 'image'):

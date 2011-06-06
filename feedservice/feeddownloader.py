@@ -15,6 +15,17 @@ from google.appengine.ext import webapp
 from feed import Feed
 import urlstore
 import httputils
+import youtube
+import soundcloud
+import fm4
+
+
+FEED_CLASSES = (
+        youtube.YoutubeFeed,
+        soundcloud.SoundcloudFeed,
+        fm4.FM4Feed,
+        Feed,
+    )
 
 
 class Parser(webapp.RequestHandler):
@@ -126,8 +137,11 @@ def parse_feed(feed_url, mod_since_utc, use_cache, **kwargs):
     if last_mod_utc and mod_since_utc and last_mod_utc <= mod_since_utc:
         return None
 
-    # we can select between special-case classes later
-    feed_cls = Feed
+    # chose the class to parse this feed
+    for cls in FEED_CLASSES:
+        if cls.handles_url(feed_url):
+            feed_cls = cls
+            break
 
     feed = feed_cls.from_blob(feed_url, feed_content, last_mod_up, etag, **kwargs)
     return feed

@@ -1,12 +1,21 @@
 import urllib2
 import urlparse
 
+from google.appengine.api.urlfetch import DownloadError
+
+
 class RedirectCollector(urllib2.HTTPRedirectHandler):
     """Collects all seen (intermediate) redirects for a HTTP request"""
 
     def __init__(self, *args, **kwargs):
         self.urls = []
         self.permanent_redirect = None
+
+    def http_error_301(self, req, fp, code, msg, hdrs):
+        try:
+            return urllib2.HTTPRedirectHandler.http_error_301(self, req, fp, code, msg, hdrs)
+        except urllib2.HTTPError:
+            pass
 
     def redirect_request(self, req, fp, code, msg, hdrs, newurl):
 
@@ -26,7 +35,12 @@ def get_redirects(url):
     collector = RedirectCollector()
     collector.urls.append(url)
     opener = urllib2.build_opener(collector)
-    opener.open(url)
+
+    try:
+        opener.open(url)
+    except (urllib2.HTTPError, DownloadError):
+        return [url], None
+
     urls = map(basic_sanitizing, collector.urls)
 
     # include un-sanitized URL for easy matching of
