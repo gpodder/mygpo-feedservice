@@ -1,9 +1,9 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
  <head>
-  <link href="static/screen.css" type="text/css" rel="stylesheet" />
-  <link href="static/prettify.css" type="text/css" rel="stylesheet" />
-  <script type="text/javascript" src="static/prettify.js"></script>
+  <link href="media/screen.css" type="text/css" rel="stylesheet" />
+  <link href="media/prettify.css" type="text/css" rel="stylesheet" />
+  <script type="text/javascript" src="media/prettify.js"></script>
   <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
   <title>gpodder.net Feed-Service</title>
  </head>
@@ -40,7 +40,7 @@
     <li><a href="if-mod-since"></a><strong>If-Modified-Since</strong>: Time when all requested feeds have been accessed the last time. The response will only contain podcasts that have been modified in the meantime.</li>
     <li><strong>User-Agent</strong>: Clients should send a descriptive User-Agent string. In case of abuse of the service, misbehaving and/or generic user-agents might be blocked.</li>
     <li><a name="accept"></a><strong>Accept</strong>: Clients should send <em>Accept: application/json</em> to indicate that they are prepared to receive JSON data. If you send a different Accept header, you will receive a HTML formatted response.</li>
-    <li><a name="accept-encoding"></a><strong>Accept-Encoding</strong>: Google App Engine gzips responses based on <em>Accept-Encoding</em> and <em>User-Agent</em> (<a href="http://code.google.com/appengine/docs/python/runtime.html#Responses">see documentation</a>). Include "gzip" in both headers to ensure gzip compression.</li>
+    <li><a name="accept-encoding"></a><strong>Accept-Encoding</strong>: Include "gzip" in both headers to ensure gzip compression.</li>
    </ul>
   </p>
 

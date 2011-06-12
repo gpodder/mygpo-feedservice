@@ -30,13 +30,6 @@
 # See http://fm4.orf.at/radio/stories/audio for available feeds
 
 
-import gpodder
-
-_ = gpodder.gettext
-
-from gpodder import model
-from gpodder import util
-
 import os
 import time
 
@@ -44,6 +37,12 @@ import re
 import feedparser
 
 from xml.dom import minidom
+
+from feedservice.parserservice.models import Feed
+
+
+class FM4Feed(Feed):
+    pass
 
 
 def get_metadata(url):
@@ -159,8 +158,3 @@ class FM4OnDemandPlaylist(object):
             tracks.append(episode)
 
         return len(tracks)
-
-
-# Register our URL handlers
-model.register_custom_handler(FM4OnDemandPlaylist)
-

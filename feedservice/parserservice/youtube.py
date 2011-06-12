@@ -20,7 +20,7 @@
 import re
 import urllib
 
-from feed import Feed, Episode
+from feedservice.parserservice.models import Feed, Episode
 
 # See http://en.wikipedia.org/wiki/YouTube#Quality_and_codecs
 # Currently missing: the WebM 480p and 720 formats; 3GP profile
@@ -42,7 +42,7 @@ class YoutubeFeed(Feed):
 
 
     re_youtube_feeds = [
-        re.compile(r'^https?://gdata.youtube.com/feeds/base/users/((?P<username>[^/]+)/uploads'),
+        re.compile(r'^https?://gdata.youtube.com/feeds/base/users/(?P<username>[^/]+)/uploads'),
         re.compile(r'^https?://(www\.)?youtube\.com/rss/user/(?P<username>[^/]+)/videos\.rss'),
         ]
 

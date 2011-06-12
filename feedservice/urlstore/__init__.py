@@ -2,33 +2,15 @@ from datetime import datetime, timedelta
 import time
 import urllib2
 from email import utils
+import base64
 
-from google.appengine.ext import db
-from google.appengine.api import memcache
-from google.appengine.api.urlfetch import DownloadError
+from couchdbkit.ext.django.schema import *
+from django.core.cache import cache
+
+from feedservice.urlstore.models import URLObject
 
 
-USER_AGENT = 'mygpo-feedservice +http://mygpo-feedservice.appspot.com/'
-
-
-class URLObject(db.Model):
-    url = db.StringProperty(required=True)
-    content = db.Blob()
-    etag = db.StringProperty(required=False)
-    expires = db.DateTimeProperty(required=False)
-    last_mod_up = db.DateTimeProperty(required=False)
-    last_mod_utc = db.DateTimeProperty(required=False)
-
-    def expired(self):
-        return not self.expires or self.expires <= datetime.utcnow()
-
-    def valid(self):
-        return len(self.content) > 0
-
-    def __repr__(self):
-        return '%(url)s (%(etag)s, %(expires)s, %(last_mod_up)s)' % \
-            dict(url=self.url, etag=self.etag,
-                 expires=self.expires, last_mod_up=self.last_mod_up)
+USER_AGENT = 'mygpo-feedservice +http://feeds.gpodder.net/'
 
 
 def get_url(url, use_cache=True):
@@ -42,7 +24,8 @@ def get_url(url, use_cache=True):
     if not cached or cached.expired() or not cached.valid():
         resp = fetch_url(url, cached)
     else:
-        resp = cached.url, cached.content, cached.last_mod_up, cached.last_mod_utc, cached.etag
+        content = base64.b64decode(cached.content)
+        resp = cached.url, content, cached.last_mod_up, cached.last_mod_utc, cached.etag
 
     return resp
 
@@ -51,7 +34,7 @@ def from_cache(url):
     """
     Tries to get the object for the given URL from Memcache or the Datastore
     """
-    return memcache.get(url)
+    return cache.get(url)
 
 
 def fetch_url(url, cached=None, add_expires=timedelta()):
@@ -73,7 +56,7 @@ def fetch_url(url, cached=None, add_expires=timedelta()):
     try:
         obj = cached or URLObject(url=url)
         r = opener.open(request)
-        obj.content = r.read()
+        obj.content = base64.b64encode(r.read())
         obj.expires = parse_header_date(r.headers.dict.get('expires', None))
         obj.last_mod_up = parse_header_date(r.headers.dict.get('last-modified', None))
         obj.last_mod_utc = datetime.utcnow()
@@ -84,7 +67,7 @@ def fetch_url(url, cached=None, add_expires=timedelta()):
         elif add_expires:
             obj.expires = datetime.utcnow() + add_expires
 
-        memcache.set(url, obj)
+        cache.set(url, obj)
 
     except urllib2.HTTPError, e:
         if e.code == 304:
@@ -94,7 +77,7 @@ def fetch_url(url, cached=None, add_expires=timedelta()):
     except DownloadError:
         pass
 
-    return obj.url, obj.content, obj.last_mod_up, obj.last_mod_utc, obj.etag
+    return obj.url, base64.b64decode(obj.content), obj.last_mod_up, obj.last_mod_utc, obj.etag
 
 
 def parse_header_date(date_str):

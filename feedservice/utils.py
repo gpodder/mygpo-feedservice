@@ -62,7 +62,6 @@ def strip_html(f):
 
         val = f(self, *args, **kwargs)
         if strip_html:
-            from utils import remove_html_tags
             val = remove_html_tags(val)
 
         return val

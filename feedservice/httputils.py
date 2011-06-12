@@ -1,8 +1,6 @@
 import urllib2
 import urlparse
 
-from google.appengine.api.urlfetch import DownloadError
-
 
 class RedirectCollector(urllib2.HTTPRedirectHandler):
     """Collects all seen (intermediate) redirects for a HTTP request"""
@@ -38,7 +36,7 @@ def get_redirects(url):
 
     try:
         opener.open(url)
-    except (urllib2.HTTPError, DownloadError):
+    except urllib2.HTTPError:
         return [url], None
 
     urls = map(basic_sanitizing, collector.urls)
@@ -67,7 +65,8 @@ def parse_header_list(values):
     Accept-Language: de;q=1, en;q=0.5; *;q=0
     and returns the results as a dictionary and a sorted list
     """
-    import re, collections
+    import re
+    import collections
 
     q_re = re.compile('q=([01](\.\d{0,4})?|(\.\d{0,4}))')
     default_q = 1

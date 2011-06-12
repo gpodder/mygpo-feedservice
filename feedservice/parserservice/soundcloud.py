@@ -21,13 +21,6 @@
 # Soundcloud.com API client module for gPodder
 # Thomas Perl <thp@gpodder.org>; 2009-11-03
 
-import gpodder
-
-_ = gpodder.gettext
-
-from gpodder import model
-from gpodder import util
-
 try:
     # For Python < 2.6, we use the "simplejson" add-on module
     # XXX: Mark as dependency
@@ -42,6 +35,9 @@ import time
 import re
 import email
 import email.Header
+
+
+from feedservice.parserservice.models import Feed
 
 
 # gPodder's consumer key for the Soundcloud API
@@ -164,7 +160,7 @@ class SoundcloudUser(object):
         finally:
             self.commit_cache()
 
-class SoundcloudFeed(object):
+class SoundcloudFeed(Feed):
     URL_REGEX = re.compile('http://([a-z]+\.)?soundcloud\.com/([^/]+)$', re.I)
 
     @classmethod
@@ -173,6 +169,11 @@ class SoundcloudFeed(object):
         if m is not None:
             subdomain, username = m.groups()
             return cls(username)
+
+    @classmethod
+    def handles_url(cls, url):
+        return False
+
 
     def __init__(self, username):
         self.username = username
@@ -227,7 +228,3 @@ class SoundcloudFavFeed(SoundcloudFeed):
             episode.save()
 
         return len(tracks)
-
-# Register our URL handlers
-model.register_custom_handler(SoundcloudFeed)
-model.register_custom_handler(SoundcloudFavFeed)

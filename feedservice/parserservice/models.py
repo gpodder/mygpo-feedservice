@@ -7,11 +7,13 @@ import logging
 import time
 
 import feedparser
+import Image
+import StringIO
 
-import urlstore
-import httputils
-from utils import strip_html, parse_time, longest_substr
-from mimetype import get_mimetype, check_mimetype
+from feedservice import urlstore
+from feedservice import httputils
+from feedservice.utils import strip_html, parse_time, longest_substr
+from feedservice.parserservice.mimetype import get_mimetype, check_mimetype
 
 
 
@@ -70,8 +72,6 @@ class Feed(dict):
             if val is not None:
                 feed[name] = val
 
-        feed.subscribe_at_hub()
-
         return feed
 
 
@@ -124,8 +124,7 @@ class Feed(dict):
 
 
     def get_urls(self, feed_url):
-        from httputils import get_redirects
-        urls, self.new_loc = get_redirects(feed_url)
+        urls, self.new_loc = httputils.get_redirects(feed_url)
         return urls
 
 
@@ -168,8 +167,9 @@ class Feed(dict):
             logging.info(msg)
             return None
 
-        if last_mod_up and mod_since_up and last_mod_up <= mod_since_up:
-            return None
+        # TODO: uncomment
+        #if last_mod_up and mod_since_up and last_mod_up <= mod_since_up:
+        #    return None
 
         mimetype = get_mimetype(None, url)
 
@@ -186,11 +186,16 @@ class Feed(dict):
         the resulting bytes and mimetype
         """
 
-        from google.appengine.api import images
+        content_io = StringIO.StringIO(content)
+        img = Image.open(content_io)
 
-        img_formats = dict(png=images.PNG, jpeg=images.JPEG)
+        try:
+            size = int(size)
+        except (ValueError, TypeError):
+            size = None
 
-        img = images.Image(content)
+        if img.mode not in ('RGB', 'RGBA'):
+            img = im.convert('RGB')
 
         if img_format:
             mimetype = 'image/%s' % img_format
@@ -198,9 +203,22 @@ class Feed(dict):
             img_format = mimetype[mimetype.find('/')+1:]
 
         if size:
-            img.resize(min(size, img.width), min(size, img.height))
+            img = img.resize((size, size), Image.ANTIALIAS)
 
-        content = img.execute_transforms(output_encoding=img_formats[img_format])
+
+        # If it's a RGBA image, composite it onto a white background for JPEG
+        if img.mode == 'RGBA':
+            background = Image.new('RGB', img.size)
+            draw = ImageDraw.Draw(background)
+            draw.rectangle((-1, -1, img.size[0]+1, img.size[1]+1), \
+                    fill=(255, 255, 255))
+            del draw
+            img = Image.composite(img, background, img)
+
+        io = StringIO.StringIO()
+        img.save(io, img_format.upper())
+        content = io.getvalue()
+
         return content, mimetype
 
 
@@ -252,7 +270,7 @@ class Feed(dict):
 
 
     def get_podcast_types(self):
-        from mimetype import get_podcast_types
+        from feedservice.parserservice.mimetype import get_podcast_types
         return get_podcast_types(self)
 
 
@@ -267,13 +285,14 @@ class Feed(dict):
         return self.etag
 
 
-    def subscribe_at_hub(self):
+    def subscribe_at_hub(self, base_url):
         """ Tries to subscribe to the feed if it contains a hub URL """
 
         if not self.get('hub', False):
             return
 
-        import pubsubhubbub
+        from feedservice.pubsubhubbub import subscribe
+        from feedservice.pubsubhubbub.models import SubscriptionError
 
         # use the last URL in the redirect chain
         feed_url = self['urls'][-1]
@@ -281,8 +300,8 @@ class Feed(dict):
         hub_url = self.get('hub')
 
         try:
-            pubsubhubbub.Subscriber.subscribe(feed_url, hub_url)
-        except pubsubhubbub.SubscriptionError, e:
+            subscribe(feed_url, hub_url, base_url)
+        except SubscriptionError, e:
             self.add_warning('hub-subscription', repr(e))
 
 
