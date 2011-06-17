@@ -83,3 +83,9 @@ COUCHDB_DATABASES = (
     ('feedservice.urlstore',     'http://127.0.0.1:5984/feedservice'),
     ('feedservice.pubsubhubbub', 'http://127.0.0.1:5984/feedservice'),
 )
+
+try:
+    from settings_prod import *
+except ImportError, e:
+    import sys
+    print >> sys.stderr, 'create settings_prod.py with your customized settings'

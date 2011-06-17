@@ -1,1 +1,2 @@
 *.pyc
+feedservice/settings_prod.py
