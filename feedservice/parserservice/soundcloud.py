@@ -36,12 +36,10 @@ import re
 import email
 import email.Header
 
+from django.confg import settings
 
 from feedservice.parserservice.models import Feed
 
-
-# gPodder's consumer key for the Soundcloud API
-CONSUMER_KEY = 'zrweghtEtnZLpXf3mlm8mQ'
 
 
 def soundcloud_parsedate(s):
@@ -107,14 +105,13 @@ class SoundcloudUser(object):
         json.dump(self.cache, open(self.cache_file, 'w'))
 
     def get_coverart(self):
-        global CONSUMER_KEY
         key = ':'.join((self.username, 'avatar_url'))
         if key in self.cache:
             return self.cache[key]
 
         image = None
         try:
-            json_url = 'http://api.soundcloud.com/users/%s.json?consumer_key=%s' % (self.username, CONSUMER_KEY)
+            json_url = 'http://api.soundcloud.com/users/%s.json?consumer_key=%s' % (self.username, settings.SOUNDCLOUD_CONSUMER_KEY)
             user_info = json.load(util.urlopen(json_url))
             image = user_info.get('avatar_url', None)
             self.cache[key] = image
@@ -128,10 +125,9 @@ class SoundcloudUser(object):
 
         The generator will give you a dictionary for every
         track it can find for its user."""
-        global CONSUMER_KEY
         try:
             json_url = 'http://api.soundcloud.com/users/%(user)s/%(feed)s.json?filter=downloadable&consumer_key=%(consumer_key)s' \
-                    % { "user":self.username, "feed":feed, "consumer_key": CONSUMER_KEY }
+                    % { "user":self.username, "feed":feed, "consumer_key": settings.SOUNDCLOUD_CONSUMER_KEY }
             tracks = (track for track in json.load(util.urlopen(json_url)) \
                     if track['downloadable'])
 
@@ -139,7 +135,7 @@ class SoundcloudUser(object):
                 # Prefer stream URL (MP3), fallback to download URL
                 url = track.get('stream_url', track['download_url']) + \
                     '?consumer_key=%(consumer_key)s' \
-                    % { 'consumer_key': CONSUMER_KEY }
+                    % { 'consumer_key': settings.SOUNDCLOUD_CONSUMER_KEY }
                 if url not in self.cache:
                     try:
                         self.cache[url] = get_metadata(url)

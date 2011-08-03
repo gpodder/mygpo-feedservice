@@ -84,6 +84,9 @@ COUCHDB_DATABASES = (
     ('feedservice.pubsubhubbub', 'http://127.0.0.1:5984/feedservice'),
 )
 
+SOUNDCLOUD_CONSUMER_KEY = ''
+
+
 try:
     from settings_prod import *
 except ImportError, e:
