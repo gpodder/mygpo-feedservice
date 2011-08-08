@@ -20,10 +20,18 @@ from feedservice.parserservice.mimetype import get_mimetype, check_mimetype
 class Feed(dict):
     """ A parsed Feed """
 
-    def __init__(self, strip_html=False, last_mod_up=None, etag=None):
-        self.strip_html = strip_html
+    def __init__(self, feed_url, feed_content, last_mod_up, etag, inline_logo,
+                       scale_to, logo_format, strip_html):
+
+        self.feed_url = feed_url
         self.last_mod_up = last_mod_up
         self.etag = etag
+        self.inline_logo = inline_logo
+        self.scale_to = scale_to
+        self.logo_format = logo_format
+        self.strip_html = strip_html
+        self.feed = feedparser.parse(feed_content)
+        self.process_feed()
 
 
     @staticmethod
@@ -37,42 +45,35 @@ class Feed(dict):
         return Episode
 
 
-    @classmethod
-    def from_blob(cls, feed_url, feed_content, last_mod_up, etag, inline_logo, scale_to, logo_format, strip_html):
+    def process_feed(self):
         """
         Parses a feed and returns its JSON object, a list of urls that refer to
         this feed, an outgoing redirect and the timestamp of the last modification
         of the feed
         """
 
-        feed_res = feedparser.parse(feed_content)
-
-        feed = Feed(strip_html, last_mod_up, etag)
-
         PROPERTIES = (
-            ('title',              lambda: feed.get_title(feed_res)),
-            ('link',               lambda: feed.get_link(feed_res)),
-            ('description',        lambda: feed.get_description(feed_res)),
-            ('author',             lambda: feed.get_author(feed_res)),
-            ('language',           lambda: feed.get_language(feed_res)),
-            ('urls',               lambda: feed.get_urls(feed_url)),
-            ('new_location',       lambda: feed.get_new_location(feed_res)),
-            ('logo',               lambda: feed.get_podcast_logo(feed_res)),
-            ('logo_data',          lambda: feed.get_podcast_logo_inline(inline_logo, last_mod_up, size=scale_to, img_format=logo_format)),
-            ('tags',               lambda: feed.get_feed_tags(feed_res.feed)),
-            ('hub',                lambda: feed.get_hub_url(feed_res.feed)),
-            ('episodes',           lambda: feed.get_episodes(feed_res, strip_html)),
-            ('content_types',      lambda: feed.get_podcast_types()),
-            ('http_last_modified', lambda: feed.get_last_modified()),
-            ('http_etag',          lambda: feed.get_etag()),
+            ('title',              self.get_title),
+            ('link',               self.get_link),
+            ('description',        self.get_description),
+            ('author',             self.get_author),
+            ('language',           self.get_language),
+            ('urls',               self.get_urls),
+            ('new_location',       self.get_new_location),
+            ('logo',               self.get_podcast_logo),
+            ('logo_data',          self.get_podcast_logo_inline),
+            ('tags',               self.get_feed_tags),
+            ('hub',                self.get_hub_url),
+            ('episodes',           self.get_episodes),
+            ('content_types',      self.get_podcast_types),
+            ('http_last_modified', self.get_last_modified),
+            ('http_etag',          self.get_etag),
         )
 
         for name, func in PROPERTIES:
             val = func()
             if val is not None:
-                feed[name] = val
-
-        return feed
+                self[name] = val
 
 
     def add_error(self, key, msg):
@@ -94,26 +95,26 @@ class Feed(dict):
 
 
     @strip_html
-    def get_title(self, feed):
-        return feed.feed.get('title', None)
+    def get_title(self):
+        return self.feed.feed.get('title', None)
 
 
-    @staticmethod
-    def get_link(feed):
-        return feed.feed.get('link', None)
-
-    @strip_html
-    def get_description(self, feed):
-        return feed.feed.get('subtitle', None)
-
+    def get_link(self):
+        return self.feed.feed.get('link', None)
 
     @strip_html
-    def get_author(self, feed):
-        return feed.feed.get('author', feed.feed.get('itunes_author', None))
+    def get_description(self):
+        return self.feed.feed.get('subtitle', None)
+
 
     @strip_html
-    def get_language(self, feed):
-        return feed.feed.get('language', None)
+    def get_author(self):
+        return self.feed.feed.get('author',
+                self.feed.feed.get('itunes_author', None))
+
+    @strip_html
+    def get_language(self):
+        return self.feed.feed.get('language', None)
 
 
     def add_url(self, url):
@@ -123,20 +124,20 @@ class Feed(dict):
         self['urls'].append(url)
 
 
-    def get_urls(self, feed_url):
-        urls, self.new_loc = httputils.get_redirects(feed_url)
+    def get_urls(self):
+        urls, self.new_loc = httputils.get_redirects(self.feed_url)
         return urls
 
 
-    def get_new_location(self, feed):
+    def get_new_location(self):
         # self.new_loc is set by get_urls()
         return getattr(self, 'new_loc', False) or \
-               feed.feed.get('newlocation', None)
+               self.feed.feed.get('newlocation', None)
 
 
-    def get_podcast_logo(self, feed):
+    def get_podcast_logo(self):
         cover_art = None
-        image = feed.feed.get('image', None)
+        image = self.feed.feed.get('image', None)
         if image is not None:
             for key in ('href', 'url'):
                 cover_art = getattr(image, key, None)
@@ -146,10 +147,10 @@ class Feed(dict):
         return cover_art
 
 
-    def get_podcast_logo_inline(self, inline_logo, mod_since_up, **transform_args):
+    def get_podcast_logo_inline(self):
         """ Fetches the feed's logo and returns its data URI """
 
-        if not inline_logo:
+        if not self.inline_logo:
             return None
 
         logo_url = self.get('logo', None)
@@ -172,6 +173,8 @@ class Feed(dict):
         #    return None
 
         mimetype = get_mimetype(None, url)
+
+        transform_args = dict(size=self.scale_to, img_format=self.logo_format)
 
         if any(transform_args.values()):
             content, mimetype = self.transform_image(content, mimetype, **transform_args)
@@ -222,11 +225,10 @@ class Feed(dict):
         return content, mimetype
 
 
-    @staticmethod
-    def get_feed_tags(feed):
+    def get_feed_tags(self):
         tags = []
 
-        for tag in feed.get('tags', []):
+        for tag in self.feed.feed.get('tags', []):
             if tag['term']:
                 tags.extend(filter(None, tag['term'].split(',')))
 
@@ -236,22 +238,21 @@ class Feed(dict):
         return list(set(tags))
 
 
-    @staticmethod
-    def get_hub_url(feed):
+    def get_hub_url(self):
         """
         Returns the Hub URL as specified by
         http://pubsubhubbub.googlecode.com/svn/trunk/pubsubhubbub-core-0.3.html#discovery
         """
 
-        for l in feed.get('links', []):
+        for l in self.feed.feed.get('links', []):
             if l.rel == 'hub' and l.get('href', None):
                 return l.href
         return None
 
 
-    def get_episodes(self, feed, strip_html):
-        get_episode = lambda e: self.episode_cls.parse(e, strip_html)
-        episodes = filter(None, map(get_episode, feed.entries))
+    def get_episodes(self):
+        get_episode = lambda e: self.episode_cls(e, self.strip_html)
+        episodes = filter(None, map(get_episode, self.feed.entries))
 
         # We take all non-empty titles
         titles = filter(None, [e.get('title', None) for e in episodes])
@@ -309,62 +310,57 @@ class Episode(dict):
     """ A parsed Episode """
 
 
-    def __init__(self, strip_html):
+    def __init__(self, entry, strip_html):
         self.strip_html = strip_html
+        self.entry = entry
+        self.process_episode()
 
 
-    @classmethod
-    def parse(cls, entry, strip_html):
+    def process_episode(self):
 
-        episode = cls(strip_html)
-        files = episode.get_episode_files(entry)
+        self.files = self.get_episode_files()
 
-        if not files:
+        if not self.files:
             return None
 
         PROPERTIES = (
-            ('guid',        lambda: episode.get_guid(entry)),
-            ('title',       lambda: episode.get_title(entry)),
-            ('description', lambda: episode.get_description(entry)),
-            ('link',        lambda: episode.get_link(entry)),
-            ('author',      lambda: episode.get_author(entry)),
-            ('duration',    lambda: episode.get_duration(entry)),
-            ('language',    lambda: episode.get_language(entry)),
-            ('files',       lambda: episode.get_files(files)),
-            ('released',    lambda: episode.get_timestamp(entry)),
+            ('guid',        self.get_guid),
+            ('title',       self.get_title),
+            ('description', self.get_description),
+            ('link',        self.get_link),
+            ('author',      self.get_author),
+            ('duration',    self.get_duration),
+            ('language',    self.get_language),
+            ('files',       self.get_files),
+            ('released',    self.get_timestamp),
         )
 
         for name, func in PROPERTIES:
             val = func()
             if val is not None:
-                episode[name] = val
-
-        return episode
+                self[name] = val
 
 
-
-    @staticmethod
-    def get_guid(entry):
-        return entry.get('id', None)
+    def get_guid(self):
+        return self.entry.get('id', None)
 
     @strip_html
-    def get_title(self, entry):
-        return entry.get('title', None)
+    def get_title(self):
+        return self.entry.get('title', None)
 
-    @staticmethod
-    def get_link(entry):
-        return entry.get('link', None)
+    def get_link(self):
+        return self.entry.get('link', None)
 
     @strip_html
-    def get_author(self, entry):
-        return entry.get('author', entry.get('itunes_author', None))
+    def get_author(self):
+        return self.entry.get('author', self.entry.get('itunes_author', None))
 
 
-    def get_episode_files(self, entry):
+    def get_episode_files(self):
         """Get the download / episode URL of a feedparser entry"""
 
         urls = {}
-        enclosures = getattr(entry, 'enclosures', [])
+        enclosures = getattr(self.entry, 'enclosures', [])
         for enclosure in enclosures:
             if 'href' in enclosure:
                 mimetype = get_mimetype(enclosure.get('type', ''), enclosure['href'])
@@ -375,7 +371,7 @@ class Episode(dict):
                         filesize = None
                     urls[enclosure['href']] = (mimetype, filesize)
 
-        media_content = getattr(entry, 'media_content', [])
+        media_content = getattr(self.entry, 'media_content', [])
         for media in media_content:
             if 'url' in media:
                 mimetype = get_mimetype(media.get('type', ''), media['url'])
@@ -386,33 +382,30 @@ class Episode(dict):
 
 
     @strip_html
-    def get_description(self, entry):
+    def get_description(self):
         for key in ('summary', 'subtitle', 'link'):
-            value = entry.get(key, None)
+            value = self.entry.get(key, None)
             if value:
                 return value
 
         return None
 
 
-    @staticmethod
-    def get_duration(entry):
-        str = entry.get('itunes_duration', '')
+    def get_duration(self):
+        str = self.entry.get('itunes_duration', '')
         try:
             return parse_time(str)
         except ValueError:
             return None
 
 
-    @staticmethod
-    def get_language(entry):
-        return entry.get('language', None)
+    def get_language(self):
+        return self.entry.get('language', None)
 
 
-    @staticmethod
-    def get_files(files):
+    def get_files(self):
         f = []
-        for k, v in files.items():
+        for k, v in self.files.items():
             file = dict(url=k)
             if v[0]:
                 file['mimetype'] = v[0]
@@ -422,10 +415,9 @@ class Episode(dict):
         return f
 
 
-    @staticmethod
-    def get_timestamp(entry):
+    def get_timestamp(self):
         try:
-            return int(time.mktime(entry.updated_parsed))
+            return int(time.mktime(self.entry.updated_parsed))
         except:
             return None
 
