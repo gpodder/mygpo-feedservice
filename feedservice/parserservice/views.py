@@ -4,7 +4,6 @@
 
 import urllib
 import time
-import simplejson as json
 import email.utils
 import logging
 import cgi
@@ -21,11 +20,17 @@ import youtube
 import soundcloud
 import fm4
 
+try:
+    import simplejson as json
+except ImportError:
+    import json
+
 
 FEED_CLASSES = (
         youtube.YoutubeFeed,
         soundcloud.SoundcloudFeed,
-        fm4.FM4Feed,
+        soundcloud.SoundcloudFavFeed,
+        fm4.FM4OnDemandPlaylist,
         Feed,
     )
 
@@ -124,9 +129,11 @@ def parse_feed(feed_url, mod_since_utc, base_url, use_cache, **kwargs):
     """
 
     try:
-        feed_url, feed_content, last_mod_up, last_mod_utc, etag = urlstore.get_url(feed_url, use_cache)
+        feed_url, feed_content, last_mod_up, last_mod_utc, etag, content_type, \
+        length = urlstore.get_url(feed_url, use_cache)
 
     except Exception, e:
+        raise
         # create a dummy feed to hold the error message and the feed URL
         feed = Feed()
         msg = 'could not fetch feed %(feed_url)s: %(msg)s' % \
@@ -146,6 +153,6 @@ def parse_feed(feed_url, mod_since_utc, base_url, use_cache, **kwargs):
             feed_cls = cls
             break
 
-    feed = feed_cls.from_blob(feed_url, feed_content, last_mod_up, etag, **kwargs)
+    feed = feed_cls(feed_url, feed_content, last_mod_up, etag, **kwargs)
     feed.subscribe_at_hub(base_url)
     return feed

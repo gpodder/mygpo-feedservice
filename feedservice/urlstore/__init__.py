@@ -25,7 +25,8 @@ def get_url(url, use_cache=True):
         resp = fetch_url(url, cached)
     else:
         content = base64.b64decode(cached.content)
-        resp = cached.url, content, cached.last_mod_up, cached.last_mod_utc, cached.etag
+        resp = cached.url, content, cached.last_mod_up, cached.last_mod_utc, \
+               cached.etag, cached.content_type, cached_length
 
     return resp
 
@@ -56,11 +57,19 @@ def fetch_url(url, cached=None, add_expires=timedelta()):
     try:
         obj = cached or URLObject(url=url)
         r = opener.open(request)
+        headers = r.info()
         obj.content = base64.b64encode(r.read())
-        obj.expires = parse_header_date(r.headers.dict.get('expires', None))
-        obj.last_mod_up = parse_header_date(r.headers.dict.get('last-modified', None))
+        obj.expires = parse_header_date(headers.get('expires', None))
+        obj.last_mod_up = parse_header_date(headers.get('last-modified', None))
+        obj.content_type = headers.get('content-type', None)
         obj.last_mod_utc = datetime.utcnow()
         obj.etag = r.headers.dict.get('etag', None)
+
+        length = headers.get('content-length', None)
+        try:
+            obj.length = int(length)
+        except:
+            pass
 
         if obj.expires is not None:
             obj.expires += add_expires
@@ -68,6 +77,7 @@ def fetch_url(url, cached=None, add_expires=timedelta()):
             obj.expires = datetime.utcnow() + add_expires
 
         cache.set(url, obj)
+        r.close()
 
     except urllib2.HTTPError, e:
         if e.code == 304:
@@ -77,7 +87,8 @@ def fetch_url(url, cached=None, add_expires=timedelta()):
     except DownloadError:
         pass
 
-    return obj.url, base64.b64decode(obj.content), obj.last_mod_up, obj.last_mod_utc, obj.etag
+    return obj.url, base64.b64decode(obj.content), obj.last_mod_up, \
+           obj.last_mod_utc, obj.etag, obj.content_type, obj.length
 
 
 def parse_header_date(date_str):

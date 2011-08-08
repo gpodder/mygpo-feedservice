@@ -10,6 +10,8 @@ class URLObject(Document):
     expires = DateTimeProperty(required=False)
     last_mod_up = DateTimeProperty(required=False)
     last_mod_utc = DateTimeProperty(required=False)
+    content_type = StringProperty(required=False)
+    length = IntegerProperty(required=False)
 
     def expired(self):
         return not self.expires or self.expires <= datetime.utcnow()
