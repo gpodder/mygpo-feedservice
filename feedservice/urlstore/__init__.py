@@ -13,7 +13,7 @@ from feedservice.urlstore.models import URLObject
 USER_AGENT = 'mygpo-feedservice +http://feeds.gpodder.net/'
 
 
-def get_url(url, use_cache=True):
+def get_url(url, use_cache=True, headers_only=False):
     """
     Gets the contents for the given URL from either memcache,
     the datastore or the URL itself
@@ -22,7 +22,7 @@ def get_url(url, use_cache=True):
     cached = from_cache(url) if use_cache else None
 
     if not cached or cached.expired() or not cached.valid():
-        resp = fetch_url(url, cached)
+        resp = fetch_url(url, cached, headers_only)
     else:
         content = base64.b64decode(cached.content)
         resp = cached.url, content, cached.last_mod_up, cached.last_mod_utc, \
@@ -38,7 +38,7 @@ def from_cache(url):
     return cache.get(url)
 
 
-def fetch_url(url, cached=None, add_expires=timedelta()):
+def fetch_url(url, cached=None, headers_only=False, add_expires=timedelta()):
     """
     Fetches the given URL and stores the resulting object in the Cache
     """
@@ -58,7 +58,12 @@ def fetch_url(url, cached=None, add_expires=timedelta()):
         obj = cached or URLObject(url=url)
         r = opener.open(request)
         headers = r.info()
-        obj.content = base64.b64encode(r.read())
+
+        if not headers_only:
+            obj.content = base64.b64encode(r.read())
+        else:
+            obj.content = None
+
         obj.expires = parse_header_date(headers.get('expires', None))
         obj.last_mod_up = parse_header_date(headers.get('last-modified', None))
         obj.content_type = headers.get('content-type', None)
@@ -87,7 +92,8 @@ def fetch_url(url, cached=None, add_expires=timedelta()):
     except DownloadError:
         pass
 
-    return obj.url, base64.b64decode(obj.content), obj.last_mod_up, \
+    content = base64.b64decode(obj.content) if obj.content else None
+    return obj.url, content, obj.last_mod_up, \
            obj.last_mod_utc, obj.etag, obj.content_type, obj.length
 
 

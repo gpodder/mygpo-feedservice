@@ -17,7 +17,7 @@ class URLObject(Document):
         return not self.expires or self.expires <= datetime.utcnow()
 
     def valid(self):
-        return len(self.content) > 0
+        return bool(self.content)
 
     def __repr__(self):
         return '%(url)s (%(etag)s, %(expires)s, %(last_mod_up)s)' % \

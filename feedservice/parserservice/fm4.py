@@ -38,37 +38,12 @@ import feedparser
 
 from xml.dom import minidom
 
-from feedservice.parserservice.models import Feed
+from feedservice.urlstore import get_url
+from feedservice.parserservice.models import Feed, Episode
+from feedservice.parserservice.mimetype import get_mimetype
 
 
-class FM4Feed(Feed):
-    pass
-
-
-def get_metadata(url):
-    """Get file download metadata
-
-    Returns a (size, type, name) from the given download
-    URL. Will use the network connection to determine the
-    metadata via the HTTP header fields.
-    """
-    track_fp = util.urlopen(url)
-    headers = track_fp.info()
-    filesize = headers['content-length'] or '0'
-    filetype = headers['content-type'] or 'application/octet-stream'
-
-    if 'last-modified' in headers:
-        parsed_date = feedparser._parse_date(headers['last-modified'])
-        filedate = time.mktime(parsed_date)
-    else:
-        filedate = None
-
-    filename = os.path.basename(os.path.dirname(url))
-    track_fp.close()
-    return filesize, filetype, filedate, filename
-
-
-class FM4OnDemandPlaylist(object):
+class FM4OnDemandPlaylist(Feed):
     URL_REGEX = re.compile('http://onapp1\.orf\.at/webcam/fm4/fod/([^/]+)\.xspf$')
     CONTENT = {
             'spezialmusik': (
@@ -91,29 +66,38 @@ class FM4OnDemandPlaylist(object):
             ),
     }
 
-    @classmethod
-    def handle_url(cls, url):
-        m = cls.URL_REGEX.match(url)
-        if m is not None:
-            category = m.group(1)
-            return cls(url, category)
 
     @classmethod
-    def get_text_contents(cls, node):
+    def handles_url(cls, url):
+        return bool(cls.URL_REGEX.match(url))
+
+
+
+    def get_text_contents(self, node):
         if hasattr(node, '__iter__'):
-            return u''.join(cls.get_text_contents(x) for x in node)
+            return u''.join(self.get_text_contents(x) for x in node)
         elif node.nodeType == node.TEXT_NODE:
             return node.data
         else:
-            return u''.join(cls.get_text_contents(c) for c in node.childNodes)
+            return u''.join(self.get_text_contents(c) for c in node.childNodes)
 
-    def __init__(self, url, category):
-        self.url = url
-        self.category = category
+
+    def __init__(self, feed_url, *args, **kwargs):
+        self.category = self.get_category(feed_url)
         # TODO: Use proper caching of contents with support for
         #       conditional GETs (If-Modified-Since, ETag, ...)
-        self.data = minidom.parse(util.urlopen(url))
+        data = get_url(feed_url)[1]
+        self.data = minidom.parseString(data)
         self.playlist = self.data.getElementsByTagName('playlist')[0]
+
+        super(FM4OnDemandPlaylist, self).__init__(feed_url, *args, **kwargs)
+
+
+    def get_category(cls, url):
+        m = cls.URL_REGEX.match(url)
+        if m is not None:
+            return m.group(1)
+
 
     def get_title(self):
         title = self.playlist.getElementsByTagName('title')[0]
@@ -121,7 +105,7 @@ class FM4OnDemandPlaylist(object):
         return self.CONTENT.get(self.category, \
                 (default, None, None, None))[0]
 
-    def get_image(self):
+    def get_podcast_logo(self):
         return self.CONTENT.get(self.category, \
                 (None, None, None, None))[1]
 
@@ -133,28 +117,68 @@ class FM4OnDemandPlaylist(object):
         return self.CONTENT.get(self.category, \
                 (None, None, None, 'XSPF playlist'))[3]
 
-    def get_new_episodes(self, channel, guids):
+    @property
+    def episode_cls(self):
+        return FM4Episode
+
+    def get_episodes(self):
         tracks = []
 
         for track in self.playlist.getElementsByTagName('track'):
             title = self.get_text_contents(track.getElementsByTagName('title'))
             url = self.get_text_contents(track.getElementsByTagName('location'))
-            if url in guids:
-                continue
-
-            filesize, filetype, filedate, filename = get_metadata(url)
-            episode = model.PodcastEpisode(channel)
-            episode.update_from_dict({
-                'title': title,
-                'link': '',
-                'description': '',
-                'url': url,
-                'length': int(filesize),
-                'mimetype': filetype,
-                'guid': url,
-                'pubDate': filedate,
-            })
-            episode.save()
+            episode = self.episode_cls(url, title, self.strip_html)
             tracks.append(episode)
 
-        return len(tracks)
+        return tracks
+
+
+class FM4Episode(Episode):
+
+    def __init__(self, url, title, strip_html):
+        entry = self.get_metadata(url, title)
+        super(FM4Episode, self).__init__(entry, strip_html)
+
+
+    def get_metadata(self, url, title):
+        """Get file download metadata
+
+        Returns a (size, type, name) from the given download
+        URL. Will use the network connection to determine the
+        metadata via the HTTP header fields.
+        """
+
+        resp = get_url(url, headers_only=True)
+        filesize = resp[6]
+        filetype = resp[5]
+        filedate = resp[2]
+
+        entry = {
+            'id': url,
+            'title': title,
+            'url': url,
+            'length': int(filesize) if filesize else None,
+            'mimetype': filetype,
+            'pubDate': filedate,
+            }
+        print entry
+        return entry
+
+
+    def get_episode_files(self):
+        f = {}
+
+        url = self.entry.get('url', False)
+        if url:
+            mimetype = get_mimetype(self.entry.get('mimetype', None), url)
+            filesize = self.entry.get('length', None)
+            f[url] = (mimetype, filesize)
+
+        return f
+
+
+    def get_timestamp(self):
+        try:
+            return int(self.entry.get('pubDate', None))
+        except:
+            return None
