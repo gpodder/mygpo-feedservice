@@ -161,7 +161,6 @@ class FM4Episode(Episode):
             'mimetype': filetype,
             'pubDate': filedate,
             }
-        print entry
         return entry
 
 
