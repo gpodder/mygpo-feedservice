@@ -7,6 +7,8 @@
  <body onload="prettyPrint()">
   <h1>HTML Response</h1>
   <p>This response is HTML formatted. To get just the JSON data for processing in your client, <a href="/#accept">send the HTTP Header <em>Accept: application/json</em></a>. <a href="/">Back to the Documentation</a></p>
-  <pre class="prettyprint">{{ response }}</pre>
+  {% autoescape off %}
+   <pre class="prettyprint">{{ response }}</pre>
+  {% endautoescape %}
  </body>
 </html>
