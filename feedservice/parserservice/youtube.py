@@ -21,6 +21,7 @@ import re
 import urllib
 
 from feedservice.parserservice.models import Feed, Episode
+from feedservice.urlstore import get_url
 
 # See http://en.wikipedia.org/wiki/YouTube#Quality_and_codecs
 # Currently missing: the WebM 480p and 720 formats; 3GP profile
@@ -35,7 +36,8 @@ supported_formats = [
 ]
 
 
-class YouTubeError(Exception): pass
+class YouTubeError(Exception):
+    pass
 
 
 class YoutubeFeed(Feed):
@@ -52,11 +54,7 @@ class YoutubeFeed(Feed):
 
     @classmethod
     def handles_url(cls, url):
-        for re_youtube_feed in cls.re_youtube_feeds:
-            if re_youtube_feed.match(url):
-                return True
-
-        return False
+        return any(regex.match(url) for regex in cls.re_youtube_feeds)
 
 
     @property
@@ -64,56 +62,58 @@ class YoutubeFeed(Feed):
         return YoutubeEpisode
 
 
-    def get_podcast_logo(self, feed):
-
-        url = feed.feed.get('link', False)
-
+    def get_podcast_logo(self):
+        url = self.feed.feed.get('link', False)
         m = self.re_cover.match(url)
 
-        if m is not None:
-            username = m.group(1)
-            api_url = 'http://gdata.youtube.com/feeds/api/users/%s?v=2' % username
-            data = util.urlopen(api_url).read()
-            match = re.search('<media:thumbnail url=[\'"]([^\'"]+)[\'"]/>', data)
-            if match is not None:
-                log('YouTube userpic for %s is: %s', url, match.group(1))
-                return match.group(1)
+        if m is None:
+            return None
 
-        return None
+        username = m.group(1)
+        api_url = 'http://gdata.youtube.com/feeds/api/users/%s?v=2' % username
+        data = get_url(api_url)[1]
+        match = re.search('<media:thumbnail url=[\'"]([^\'"]+)[\'"]/>', data)
+        if match is not None:
+            log('YouTube userpic for %s is: %s', url, match.group(1))
+            return match.group(1)
 
 
-    def get_real_channel_url(url):
+    def get_real_channel_url(self):
         r = re.compile('http://(?:[a-z]+\.)?youtube\.com/user/([a-z0-9]+)', re.IGNORECASE)
-        m = r.match(url)
+        m = r.match(self.url)
 
         if m is not None:
             next = 'http://www.youtube.com/rss/user/'+ m.group(1) +'/videos.rss'
-            log('YouTube link resolved: %s => %s', url, next)
+            log('YouTube link resolved: %s => %s', self.url, next)
             return next
 
         r = re.compile('http://(?:[a-z]+\.)?youtube\.com/profile?user=([a-z0-9]+)', re.IGNORECASE)
-        m = r.match(url)
+        m = r.match(self.url)
 
         if m is not None:
             next = 'http://www.youtube.com/rss/user/'+ m.group(1) +'/videos.rss'
-            log('YouTube link resolved: %s => %s', url, next)
+            log('YouTube link resolved: %s => %s', self.url, next)
             return next
 
-        return url
+        return self.url
 
 
 class YoutubeEpisode(Episode):
 
-    def get_episode_files(self, entry):
+    def get_episode_files(self):
         urls = dict()
 
-        links = getattr(entry, 'links', [])
+        links = getattr(self.entry, 'links', [])
         for link in links:
+
             if not hasattr(link, 'href'):
                 continue
 
-            if self.is_video_link(link['href']):
-                urls[link['href']] = ('application/x-youtube', None)
+            url = link['href']
+            dl_url = self.get_real_download_url(url)
+
+            if self.is_video_link(url):
+                urls[dl_url] = ('application/x-youtube', None)
 
         return urls
 
@@ -137,27 +137,20 @@ class YoutubeEpisode(Episode):
     def get_real_download_url(self, url, preferred_fmt_id=18):
         vid = self.get_youtube_id(url)
         if vid is not None:
-            page = None
             url = 'http://www.youtube.com/watch?v=' + vid
 
-            while page is None:
-                req = util.http_request(url, method='GET')
-                if 'location' in req.msg:
-                    url = req.msg['location']
-                else:
-                    page = req.read()
+            page = get_url(url)[1]
 
             # Try to find the best video format available for this video
             # (http://forum.videohelp.com/topic336882-1800.html#1912972)
             def find_urls(page):
-                r4 = re.search('.*"fmt_url_map"\:\s+"([^"]+)".*', page)
+                r4 = re.search('.*"url_encoded_fmt_stream_map"\:\s+"([^"]+)".*', page)
                 if r4 is not None:
                     fmt_url_map = r4.group(1)
                     for fmt_url_encoded in fmt_url_map.split(','):
-                        fmt_url = urllib.unquote(fmt_url_encoded)
-                        fmt_url = fmt_url.replace('\\/', '/').replace("\u0026", "&")
-                        fmt_id, url = fmt_url.split('|', 2)
-                        yield int(fmt_id), url
+                        video_info = dict(map(urllib.unquote, x.split('=', 1))
+                                for x in fmt_url_encoded.split('\\u0026'))
+                        yield int(video_info['itag']), video_info['url']
 
             fmt_id_url_map = sorted(find_urls(page), reverse=True)
             # Default to the highest fmt_id if we don't find a match below
@@ -169,42 +162,27 @@ class YoutubeEpisode(Episode):
             formats_available = set(fmt_id for fmt_id, url in fmt_id_url_map)
             fmt_id_url_map = dict(fmt_id_url_map)
 
-            if gpodder.ui.diablo:
-                # Hardcode fmt_id 5 for Maemo (for performance reasons) - we could
-                # also use 13 and 17 here, but the quality is very low then. There
-                # seems to also be a 6, but I could not find a video with that yet.
-                fmt_id = 5
-            elif gpodder.ui.fremantle:
-                # This provides good quality video, seems to be always available
-                # and is playable fluently in Media Player
-                if preferred_fmt_id == 5:
-                    fmt_id = 5
-                else:
-                    fmt_id = 18
-            else:
-                # As a fallback, use fmt_id 18 (seems to be always available)
-                fmt_id = 18
+            # use fmt_id 18 (seems to be always available)
+            fmt_id = 18
 
-                # This will be set to True if the search below has already "seen"
-                # our preferred format, but has not yet found a suitable available
-                # format for the given video.
-                seen_preferred = False
+            # This will be set to True if the search below has already "seen"
+            # our preferred format, but has not yet found a suitable available
+            # format for the given video.
+            seen_preferred = False
 
-                for id, wanted, description in supported_formats:
-                    # If we see our preferred format, accept formats below
-                    if id == preferred_fmt_id:
-                        seen_preferred = True
+            for id, wanted, description in supported_formats:
+                # If we see our preferred format, accept formats below
+                if id == preferred_fmt_id:
+                    seen_preferred = True
 
-                    # If the format is available and preferred (or lower),
-                    # use the given format for our fmt_id
-                    if id in formats_available and seen_preferred:
-                        log('Found available YouTube format: %s (fmt_id=%d)', \
-                                description, id)
-                        fmt_id = id
-                        break
+                # If the format is available and preferred (or lower),
+                # use the given format for our fmt_id
+                if id in formats_available and seen_preferred:
+                    fmt_id = id
+                    break
 
             url = fmt_id_url_map.get(fmt_id, None)
             if url is None:
                 url = default_url
 
-        return url
+        return urllib.unquote(url)
