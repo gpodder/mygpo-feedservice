@@ -9,7 +9,7 @@ import StringIO
 
 from feedservice import urlstore
 from feedservice import httputils
-from feedservice.utils import strip_html, flatten, longest_substr
+from feedservice.utils import flatten, longest_substr
 from feedservice.parserservice.mimetype import get_mimetype, check_mimetype
 
 
@@ -34,14 +34,14 @@ class Feed(object):
             pass
 
 
-    def to_dict(self, strip_html, inline_logo, scale_to, logo_format):
+    def to_dict(self, process_text, inline_logo, scale_to, logo_format):
         """
         Parses a feed and returns its JSON object, a list of urls that refer to
         this feed, an outgoing redirect and the timestamp of the last modification
         of the feed
         """
 
-        self.strip_html  = strip_html
+        self.process_text  = process_text
         self.inline_logo = inline_logo
         self.logo_format = logo_format
         self.scale_to    = scale_to
@@ -67,7 +67,7 @@ class Feed(object):
         )
 
         for name, func in PROPERTIES:
-            val = func()
+            val = process_text(func())
             if val is not None:
                 feed_dict[name] = val
 
@@ -83,7 +83,6 @@ class Feed(object):
         self.warnings[key] = msg
 
 
-    @strip_html
     def get_title(self):
         return None
 
@@ -92,17 +91,14 @@ class Feed(object):
         return None
 
 
-    @strip_html
     def get_description(self):
         return None
 
 
-    @strip_html
     def get_author(self):
         return None
 
 
-    @strip_html
     def get_language(self):
         return None
 
@@ -211,7 +207,8 @@ class Feed(object):
         episodes = self.get_episode_objects()
         common_title = self.get_common_title(episodes)
 
-        return [episode.to_dict(common_title) for episode in episodes]
+        return [episode.to_dict(self.process_text, common_title)
+                for episode in episodes]
 
 
     def get_common_title(self, episodes):
@@ -272,7 +269,7 @@ class Episode(object):
     """ A parsed Episode """
 
 
-    def to_dict(self, common_title):
+    def to_dict(self, process_text, common_title):
 
         self.common_title = common_title
 
@@ -293,7 +290,7 @@ class Episode(object):
         episode_dict = {}
 
         for name, func in PROPERTIES:
-            val = func()
+            val = process_text(func())
             if val is not None:
                 episode_dict[name] = val
 
@@ -304,7 +301,6 @@ class Episode(object):
         return None
 
 
-    @strip_html
     def get_title(self):
         return None
 
@@ -313,11 +309,9 @@ class Episode(object):
         return None
 
 
-    @strip_html
     def get_author(self):
         return None
 
-    @strip_html
     def get_description(self):
         return None
 

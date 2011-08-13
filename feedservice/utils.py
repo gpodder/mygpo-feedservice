@@ -20,6 +20,11 @@ import re
 from htmlentitydefs import entitydefs
 from itertools import chain
 
+try:
+    import html2text
+except ImportError:
+    html2text = None
+
 
 def parse_time(value):
     """
@@ -50,24 +55,6 @@ def parse_time(value):
             continue
 
     return int(value)
-
-
-def strip_html(f):
-    """ Decorator to strip HTML tags from the results of bound methods
-
-    Checks if self has the attribute 'strip_html' set """
-
-    def _tmp(self, *args, **kwargs):
-
-        strip_html = getattr(self, 'strip_html', False)
-
-        val = f(self, *args, **kwargs)
-        if strip_html:
-            val = remove_html_tags(val)
-
-        return val
-
-    return _tmp
 
 
 # taken from gpodder.util
@@ -106,6 +93,15 @@ def remove_html_tags(html):
     result = re.sub('([\r\n]{2})([\r\n])+', '\\1', result)
 
     return result.strip()
+
+
+def convert_markdown(s):
+    if html2text is None:
+        return s
+
+    print 'converting %s to markdown: %s' % (s, html2text.html2text(s))
+    return html2text.html2text(s).strip()
+
 
 
 # from http://stackoverflow.com/questions/2892931/longest-common-substring-from-more-than-two-strings-python

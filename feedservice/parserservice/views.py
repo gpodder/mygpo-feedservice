@@ -8,6 +8,7 @@ import email.utils
 import logging
 import cgi
 from datetime import datetime
+from functools import partial
 
 
 from django.http import HttpResponse
@@ -16,6 +17,7 @@ from django.shortcuts import render_to_response
 from feedservice.parserservice.models import Feed
 from feedservice import urlstore
 from feedservice import  httputils
+from feedservice.utils import remove_html_tags, convert_markdown
 from feedservice.parserservice import feed, youtube, soundcloud, fm4
 
 try:
@@ -37,6 +39,13 @@ FEED_CLASSES = (
     )
 
 
+TEXT_PROCESSORS = {
+    "strip_html": remove_html_tags,
+    "markdown": convert_markdown,
+    "none": lambda x: x
+}
+
+
 def parse(request):
     """ Parser Endpoint """
 
@@ -49,14 +58,14 @@ def parse(request):
         use_cache   = request.GET.get('use_cache',   default=1),
     )
 
-    strip_html  = request.GET.get('strip_html',  default=0),
+    process_text  = get_text_processor(request.GET.get('process_text', ''))
     mod_since_utc = request.META.get('HTTP_IF_MODIFIED_SINCE', None)
     accept = request.META.get('HTTP_ACCEPT', 'application/json')
 
     base_url = request.build_absolute_uri('/')
 
     if urls:
-        podcasts = parse_feeds(urls, mod_since_utc, base_url, strip_html,
+        podcasts = parse_feeds(urls, mod_since_utc, base_url, process_text,
                 **parse_args)
 
         last_mod_utc = datetime.utcnow()
@@ -95,7 +104,7 @@ def send_response(podcasts, last_mod_utc, formats):
     return response
 
 
-def parse_feeds(feed_urls, mod_since_utc, base_url, strip_html, **kwargs):
+def parse_feeds(feed_urls, mod_since_utc, base_url, process_text, **kwargs):
     """
     Parses several feeds, specified by feed_urls and returns their JSON
     objects and the latest of their modification dates. RSS-Redirects are
@@ -107,7 +116,7 @@ def parse_feeds(feed_urls, mod_since_utc, base_url, strip_html, **kwargs):
 
     for url in feed_urls:
 
-        feed = parse_feed(url, mod_since_utc, base_url, strip_html,  **kwargs)
+        feed = parse_feed(url, mod_since_utc, base_url, process_text,  **kwargs)
 
         if not feed:
             continue
@@ -134,7 +143,7 @@ def get_feed_cls(url):
     raise ValueError('no feed can handle %s' % url)
 
 
-def parse_feed(feed_url, mod_since_utc, base_url, strip_html, use_cache,
+def parse_feed(feed_url, mod_since_utc, base_url, process_text, use_cache,
         **kwargs):
     """
     Parses a feed and returns its JSON object, a list of urls that refer to
@@ -169,4 +178,20 @@ def parse_feed(feed_url, mod_since_utc, base_url, strip_html, use_cache,
 
     feed.subscribe_at_hub(base_url)
 
-    return feed.to_dict(strip_html, **kwargs)
+    return feed.to_dict(process_text, **kwargs)
+
+
+def get_text_processor(s):
+    processing = TEXT_PROCESSORS.get(s, lambda x: x)
+    return partial(apply_text_processing, processing)
+
+
+def apply_text_processing(processing, obj):
+
+    if isinstance(obj, basestring):
+        return processing(obj)
+
+    elif isinstance(obj, list):
+        return [apply_text_processing(processing, x) for x in obj]
+
+    return obj
