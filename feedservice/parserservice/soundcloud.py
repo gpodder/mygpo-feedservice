@@ -149,13 +149,13 @@ class SoundcloudFeed(Feed):
         return bool(cls.URL_REGEX.match(url))
 
 
-    def __init__(self, feed_url, *args, **kwargs):
+    def __init__(self, feed_url, content):
         self.strip_html = kwargs.get('strip_html', False)
         m = self.__class__.URL_REGEX.match(feed_url)
         subdomain, self.username = m.groups()
         self.sc_user = SoundcloudUser(self.username)
 
-        super(SoundcloudFeed, self).__init__(feed_url, *args, **kwargs)
+        super(SoundcloudFeed, self).__init__(feed_url)
 
 
     def get_title(self):

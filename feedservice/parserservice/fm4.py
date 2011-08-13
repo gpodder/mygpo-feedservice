@@ -83,16 +83,15 @@ class FM4OnDemandPlaylist(Feed):
             return u''.join(self.get_text_contents(c) for c in node.childNodes)
 
 
-    def __init__(self, feed_url, *args, **kwargs):
+    def __init__(self, feed_url, content):
 
         self.category = self.get_category(feed_url)
         # TODO: Use proper caching of contents with support for
         #       conditional GETs (If-Modified-Since, ETag, ...)
-        data = get_url(feed_url)[1]
-        self.data = minidom.parseString(data)
+        self.data = minidom.parseString(content)
         self.playlist = self.data.getElementsByTagName('playlist')[0]
 
-        super(FM4OnDemandPlaylist, self).__init__(feed_url, *args, **kwargs)
+        super(FM4OnDemandPlaylist, self).__init__(feed_url)
 
 
     def get_category(cls, url):

@@ -57,10 +57,6 @@ class YoutubeFeed(FeedparserFeed):
         return any(regex.match(url) for regex in cls.re_youtube_feeds)
 
 
-    @property
-    def episode_cls(self):
-        return YoutubeEpisode
-
     def get_podcast_logo(self):
         url = self.feed.feed.get('link', False)
         m = self.re_cover.match(url)

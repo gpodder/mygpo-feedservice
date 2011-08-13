@@ -21,10 +21,9 @@ from feedservice.parserservice.mimetype import get_mimetype, check_mimetype
 class FeedparserFeed(Feed):
     """ A parsed Feed """
 
-    def __init__(self, url, content, inline_logo, scale_to, logo_format):
+    def __init__(self, url, content):
 
-        super(FeedparserFeed, self).__init__(url, content, inline_logo,
-                scale_to, logo_format)
+        super(FeedparserFeed, self).__init__(url)
 
         self.episodes = None
         self.feed = feedparser.parse(content)

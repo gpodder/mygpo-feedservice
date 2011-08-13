@@ -165,8 +165,8 @@ def parse_feed(feed_url, mod_since_utc, base_url, strip_html, use_cache,
     except UnchangedException as e:
         return None
 
-    feed = feed_cls(feed_url, content, **kwargs)
+    feed = feed_cls(feed_url, content)
 
     feed.subscribe_at_hub(base_url)
 
-    return feed.to_dict(strip_html)
+    return feed.to_dict(strip_html, **kwargs)

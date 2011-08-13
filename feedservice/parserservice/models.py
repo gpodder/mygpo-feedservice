@@ -17,17 +17,10 @@ from feedservice.parserservice.mimetype import get_mimetype, check_mimetype
 class Feed(object):
     """ A parsed Feed """
 
-    def __init__(self, url, content, inline_logo, scale_to, logo_format):
+    def __init__(self, url):
         self.url = url
-        self.content = content
-        self.inline_logo = inline_logo
-        self.scale_to = scale_to
-        self.logo_format = logo_format
-        self.strip_html = strip_html
-
         self.errors = {}
         self.warnings = {}
-        self.content = None
 
 
     @classmethod
@@ -41,12 +34,17 @@ class Feed(object):
             pass
 
 
-    def to_dict(self, strip_html):
+    def to_dict(self, strip_html, inline_logo, scale_to, logo_format):
         """
         Parses a feed and returns its JSON object, a list of urls that refer to
         this feed, an outgoing redirect and the timestamp of the last modification
         of the feed
         """
+
+        self.strip_html  = strip_html
+        self.inline_logo = inline_logo
+        self.logo_format = logo_format
+        self.scale_to    = scale_to
 
         feed_dict = {}
 
