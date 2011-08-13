@@ -58,7 +58,12 @@ def parse(request):
         use_cache   = request.GET.get('use_cache',   default=1),
     )
 
+    # support deprecated param 'strip_html'; newer 'process_text' overrides
+    if int(request.GET.get('strip_html', 0)):
+        process_text = get_text_processor('strip_html')
+
     process_text  = get_text_processor(request.GET.get('process_text', ''))
+
     mod_since_utc = request.META.get('HTTP_IF_MODIFIED_SINCE', None)
     accept = request.META.get('HTTP_ACCEPT', 'application/json')
 
