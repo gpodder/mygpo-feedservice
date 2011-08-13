@@ -44,7 +44,9 @@ from feedservice.parserservice.mimetype import get_mimetype
 
 
 class FM4OnDemandPlaylist(Feed):
+
     URL_REGEX = re.compile('http://onapp1\.orf\.at/webcam/fm4/fod/([^/]+)\.xspf$')
+
     CONTENT = {
             'spezialmusik': (
                 'FM4 Sendungen',
@@ -72,7 +74,6 @@ class FM4OnDemandPlaylist(Feed):
         return bool(cls.URL_REGEX.match(url))
 
 
-
     def get_text_contents(self, node):
         if hasattr(node, '__iter__'):
             return u''.join(self.get_text_contents(x) for x in node)
@@ -83,6 +84,7 @@ class FM4OnDemandPlaylist(Feed):
 
 
     def __init__(self, feed_url, *args, **kwargs):
+
         self.category = self.get_category(feed_url)
         # TODO: Use proper caching of contents with support for
         #       conditional GETs (If-Modified-Since, ETag, ...)
@@ -105,29 +107,29 @@ class FM4OnDemandPlaylist(Feed):
         return self.CONTENT.get(self.category, \
                 (default, None, None, None))[0]
 
-    def get_podcast_logo(self):
+
+    def get_logo_url(self):
         return self.CONTENT.get(self.category, \
                 (None, None, None, None))[1]
+
 
     def get_link(self):
         return self.CONTENT.get(self.category, \
                 (None, None, 'http://fm4.orf.at/', None))[2]
 
+
     def get_description(self):
         return self.CONTENT.get(self.category, \
                 (None, None, None, 'XSPF playlist'))[3]
 
-    @property
-    def episode_cls(self):
-        return FM4Episode
 
-    def get_episodes(self):
+    def get_episode_objects(self):
         tracks = []
 
         for track in self.playlist.getElementsByTagName('track'):
             title = self.get_text_contents(track.getElementsByTagName('title'))
             url = self.get_text_contents(track.getElementsByTagName('location'))
-            episode = self.episode_cls(url, title, self.strip_html)
+            episode = FM4Episode(url, title)
             tracks.append(episode)
 
         return tracks
@@ -135,9 +137,9 @@ class FM4OnDemandPlaylist(Feed):
 
 class FM4Episode(Episode):
 
-    def __init__(self, url, title, strip_html):
-        entry = self.get_metadata(url, title)
-        super(FM4Episode, self).__init__(entry, strip_html)
+    def __init__(self, url, title):
+        self.entry = self.get_metadata(url, title)
+        super(FM4Episode, self).__init__()
 
 
     def get_metadata(self, url, title):
@@ -164,16 +166,22 @@ class FM4Episode(Episode):
         return entry
 
 
-    def get_episode_files(self):
-        f = {}
+    def get_guid(self):
+        return self.entry.get('id', None)
 
+
+    def get_title(self):
+        return self.entry.get('title', None)
+
+
+    def list_files(self):
         url = self.entry.get('url', False)
-        if url:
-            mimetype = get_mimetype(self.entry.get('mimetype', None), url)
-            filesize = self.entry.get('length', None)
-            f[url] = (mimetype, filesize)
+        if not url:
+            return
 
-        return f
+        mimetype = get_mimetype(self.entry.get('mimetype', None), url)
+        filesize = self.entry.get('length', None)
+        yield (url, mimetype, filesize)
 
 
     def get_timestamp(self):

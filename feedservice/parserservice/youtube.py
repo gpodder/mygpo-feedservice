@@ -20,7 +20,7 @@
 import re
 import urllib
 
-from feedservice.parserservice.models import Feed, Episode
+from feedservice.parserservice.feed import FeedparserFeed, FeedparserEpisode
 from feedservice.urlstore import get_url
 
 # See http://en.wikipedia.org/wiki/YouTube#Quality_and_codecs
@@ -40,7 +40,7 @@ class YouTubeError(Exception):
     pass
 
 
-class YoutubeFeed(Feed):
+class YoutubeFeed(FeedparserFeed):
 
 
     re_youtube_feeds = [
@@ -60,7 +60,6 @@ class YoutubeFeed(Feed):
     @property
     def episode_cls(self):
         return YoutubeEpisode
-
 
     def get_podcast_logo(self):
         url = self.feed.feed.get('link', False)
@@ -98,14 +97,10 @@ class YoutubeFeed(Feed):
         return self.url
 
 
-class YoutubeEpisode(Episode):
+class YoutubeEpisode(FeedparserEpisode):
 
-    def get_episode_files(self):
-        urls = dict()
-
-        links = getattr(self.entry, 'links', [])
-        for link in links:
-
+    def list_files(self):
+        for link in getattr(self.entry, 'links', []):
             if not hasattr(link, 'href'):
                 continue
 
@@ -113,9 +108,7 @@ class YoutubeEpisode(Episode):
             dl_url = self.get_real_download_url(url)
 
             if self.is_video_link(url):
-                urls[dl_url] = ('application/x-youtube', None)
-
-        return urls
+                yield (dl_url, 'application/x-youtube', None)
 
 
     def is_video_link(self, url):

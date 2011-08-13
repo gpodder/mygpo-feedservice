@@ -149,20 +149,19 @@ class SoundcloudFeed(Feed):
         return bool(cls.URL_REGEX.match(url))
 
 
-    def __init__(self, feed_url, feed_content, last_mod_up, etag, **kwargs):
+    def __init__(self, feed_url, *args, **kwargs):
         self.strip_html = kwargs.get('strip_html', False)
         m = self.__class__.URL_REGEX.match(feed_url)
         subdomain, self.username = m.groups()
         self.sc_user = SoundcloudUser(self.username)
 
-        super(SoundcloudFeed, self).__init__(feed_url, feed_content,
-                last_mod_up, etag, **kwargs)
+        super(SoundcloudFeed, self).__init__(feed_url, *args, **kwargs)
 
 
     def get_title(self):
         return '%s on Soundcloud' % self.username
 
-    def get_podcast_logo(self):
+    def get_logo_url(self):
         return self.sc_user.get_coverart()
 
     def get_link(self):
@@ -171,18 +170,13 @@ class SoundcloudFeed(Feed):
     def get_description(self):
         return 'Tracks published by %s on Soundcloud.' % self.username
 
+    def get_author(self):
+        return self.username
 
-    @property
-    def episode_cls(self):
-        return SoundcloudEpisode
-
-
-    def get_episodes(self):
+    def get_episode_objects(self):
         tracks = self.sc_user.get_tracks('tracks')
-        cls = self.episode_cls
-        make_episode = lambda track: cls(track, self.strip_html)
-        episodes = map(make_episode, tracks)
-        return episodes
+        make_episode = lambda t: SoundcloudEpisode(t, self.get_author())
+        return map(make_episode, tracks)
 
 
 
@@ -212,46 +206,46 @@ class SoundcloudFavFeed(SoundcloudFeed):
 
 class SoundcloudEpisode(Episode):
 
-    def __init__(self, track, strip_html):
-        super(SoundcloudEpisode, self).__init__(track, strip_html)
+
+    def __init__(self, track, author):
+        self.entry = track
+        self.author = author
+
 
     def get_guid(self):
         return self.entry.get('guid', None)
 
+
     def get_title(self):
         return self.entry.get('title', None)
+
 
     def get_link(self):
         return self.entry.get('link', None)
 
-    def get_author(self):
-        return None
 
-    def get_episode_files(self):
-        url = self.entry.get('url', None)
-        return [url] if url else []
+    def get_author(self):
+        return self.author
+
 
     def get_description(self):
         return self.entry.get('description', None)
 
+
     def get_duration(self):
         return None
+
 
     def get_language(self):
         return None
 
-    def get_files(self):
+
+    def list_files(self):
         url = self.entry.get('url', None)
         mimetype = get_mimetype(self.entry.get('mimetype', None), url)
         filesize = self.entry.get('length', None)
 
-        f = dict(url=url)
-        if mimetype:
-            f['mimetype'] = mimetype
-        if filesize:
-            f['filesize'] = filesize
-
-        return [f]
+        yield (url, mimetype, filesize)
 
 
     def get_timestamp(self):
@@ -259,7 +253,3 @@ class SoundcloudEpisode(Episode):
             return int(self.entry.get('pubDate', None))
         except:
             return None
-
-
-    def get_additional_episode_data(self, common_title):
-        return {}

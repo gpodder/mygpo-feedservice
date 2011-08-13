@@ -15,10 +15,8 @@ from django.shortcuts import render_to_response
 
 from feedservice.parserservice.models import Feed
 from feedservice import urlstore
-import httputils
-import youtube
-import soundcloud
-import fm4
+from feedservice import  httputils
+from feedservice.parserservice import feed, youtube, soundcloud, fm4
 
 try:
     import simplejson as json
@@ -26,12 +24,16 @@ except ImportError:
     import json
 
 
+class UnchangedException(Exception):
+    pass
+
+
 FEED_CLASSES = (
         youtube.YoutubeFeed,
         soundcloud.SoundcloudFeed,
         soundcloud.SoundcloudFavFeed,
         fm4.FM4OnDemandPlaylist,
-        Feed,
+        feed.FeedparserFeed,
     )
 
 
@@ -44,17 +46,18 @@ def parse(request):
         inline_logo = request.GET.get('inline_logo', default=0),
         scale_to    = request.GET.get('scale_logo',  default=0),
         logo_format = request.GET.get('logo_format', None),
-        strip_html  = request.GET.get('strip_html',  default=0),
         use_cache   = request.GET.get('use_cache',   default=1),
     )
 
+    strip_html  = request.GET.get('strip_html',  default=0),
     mod_since_utc = request.META.get('HTTP_IF_MODIFIED_SINCE', None)
     accept = request.META.get('HTTP_ACCEPT', 'application/json')
 
     base_url = request.build_absolute_uri('/')
 
     if urls:
-        podcasts = parse_feeds(urls, mod_since_utc, base_url, **parse_args)
+        podcasts = parse_feeds(urls, mod_since_utc, base_url, strip_html,
+                **parse_args)
 
         last_mod_utc = datetime.utcnow()
         response = send_response(podcasts, last_mod_utc, accept)
@@ -92,7 +95,7 @@ def send_response(podcasts, last_mod_utc, formats):
     return response
 
 
-def parse_feeds(feed_urls, mod_since_utc, base_url, **kwargs):
+def parse_feeds(feed_urls, mod_since_utc, base_url, strip_html, **kwargs):
     """
     Parses several feeds, specified by feed_urls and returns their JSON
     objects and the latest of their modification dates. RSS-Redirects are
@@ -104,12 +107,12 @@ def parse_feeds(feed_urls, mod_since_utc, base_url, **kwargs):
 
     for url in feed_urls:
 
-        feed = parse_feed(url, mod_since_utc, base_url, **kwargs)
+        feed = parse_feed(url, mod_since_utc, base_url, strip_html,  **kwargs)
 
         if not feed:
             continue
 
-        visited  = feed.get('urls', [])
+        visited  = feed['urls']
         new_loc  = feed.get('new_location', None)
 
         # we follow RSS-redirects automatically
@@ -121,38 +124,49 @@ def parse_feeds(feed_urls, mod_since_utc, base_url, **kwargs):
     return result
 
 
-def parse_feed(feed_url, mod_since_utc, base_url, use_cache, **kwargs):
+def get_feed_cls(url):
+    feed_cls = None
+
+    for cls in FEED_CLASSES:
+        if cls.handles_url(url):
+            return cls
+
+    raise ValueError('no feed can handle %s' % url)
+
+
+def parse_feed(feed_url, mod_since_utc, base_url, strip_html, use_cache,
+        **kwargs):
     """
     Parses a feed and returns its JSON object, a list of urls that refer to
     this feed, an outgoing redirect and the timestamp of the last modification
     of the feed
     """
 
+    feed_cls = get_feed_cls(feed_url)
+
     try:
-        feed_url, feed_content, last_mod_up, last_mod_utc, etag, content_type, \
+        feed_url, content, last_mod_up, last_mod_utc, etag, content_type, \
         length = urlstore.get_url(feed_url, use_cache)
+
+        if last_mod_utc and mod_since_utc and last_mod_utc <= mod_since_utc:
+            raise UnchangedException
 
     except Exception, e:
         raise
         # create a dummy feed to hold the error message and the feed URL
-        feed = Feed()
+        feed = Feed(feed_url, None)
         msg = 'could not fetch feed %(feed_url)s: %(msg)s' % \
             dict(feed_url=feed_url, msg=str(e))
         feed.add_error('fetch-feed', msg)
         logging.info(msg)
         feed.add_url(feed_url)
-        raise
         return feed
 
-    if last_mod_utc and mod_since_utc and last_mod_utc <= mod_since_utc:
+    except UnchangedException as e:
         return None
 
-    # chose the class to parse this feed
-    for cls in FEED_CLASSES:
-        if cls.handles_url(feed_url):
-            feed_cls = cls
-            break
+    feed = feed_cls(feed_url, content, **kwargs)
 
-    feed = feed_cls(feed_url, feed_content, last_mod_up, etag, **kwargs)
     feed.subscribe_at_hub(base_url)
-    return feed
+
+    return feed.to_dict(strip_html)

@@ -18,6 +18,7 @@
 import time
 import re
 from htmlentitydefs import entitydefs
+from itertools import chain
 
 
 def parse_time(value):
@@ -132,3 +133,6 @@ def longest_substr(strings):
                 substr = candidate
     return substr
 
+
+def flatten(l):
+    return chain.from_iterable(l)

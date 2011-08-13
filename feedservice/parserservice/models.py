@@ -1,56 +1,54 @@
-#!/usr/bin/python
 # -*- coding: utf-8 -*-
 #
 
 import re
 import logging
-import time
 
-import feedparser
 import Image
 import StringIO
 
 from feedservice import urlstore
 from feedservice import httputils
-from feedservice.utils import strip_html, parse_time, longest_substr
+from feedservice.utils import strip_html, flatten, longest_substr
 from feedservice.parserservice.mimetype import get_mimetype, check_mimetype
 
 
 
-class Feed(dict):
+class Feed(object):
     """ A parsed Feed """
 
-    def __init__(self, feed_url, feed_content, last_mod_up, etag, inline_logo,
-                       scale_to, logo_format, strip_html):
-
-        self.feed_url = feed_url
-        self.last_mod_up = last_mod_up
-        self.etag = etag
+    def __init__(self, url, content, inline_logo, scale_to, logo_format):
+        self.url = url
+        self.content = content
         self.inline_logo = inline_logo
         self.scale_to = scale_to
         self.logo_format = logo_format
         self.strip_html = strip_html
-        self.feed = feedparser.parse(feed_content)
-        self.process_feed()
+
+        self.errors = {}
+        self.warnings = {}
+        self.content = None
 
 
-    @staticmethod
-    def handles_url(url):
-        """ Generic class that can handle every RSS/Atom feed """
-        return True
+    @classmethod
+    def handles_url(cls, url):
+        """ Returns True if the class can handle the feed with the given URL """
+        return False
 
 
-    @property
-    def episode_cls(self):
-        return Episode
+    def parse(self):
+        if last_mod_utc and mod_since_utc and last_mod_utc <= mod_since_utc:
+            pass
 
 
-    def process_feed(self):
+    def to_dict(self, strip_html):
         """
         Parses a feed and returns its JSON object, a list of urls that refer to
         this feed, an outgoing redirect and the timestamp of the last modification
         of the feed
         """
+
+        feed_dict = {}
 
         PROPERTIES = (
             ('title',              self.get_title),
@@ -60,100 +58,77 @@ class Feed(dict):
             ('language',           self.get_language),
             ('urls',               self.get_urls),
             ('new_location',       self.get_new_location),
-            ('logo',               self.get_podcast_logo),
-            ('logo_data',          self.get_podcast_logo_inline),
+            ('logo',               self.get_logo_url),
+            ('logo_data',          self.get_logo_inline),
             ('tags',               self.get_feed_tags),
             ('hub',                self.get_hub_url),
-            ('episodes',           self.get_episodes),
             ('content_types',      self.get_podcast_types),
             ('http_last_modified', self.get_last_modified),
-            ('http_etag',          self.get_etag),
+            ('episodes',           self.get_episodes),
+#            ('http_etag',          self.get_etag),
         )
 
         for name, func in PROPERTIES:
             val = func()
             if val is not None:
-                self[name] = val
+                feed_dict[name] = val
 
+        return feed_dict
 
     def add_error(self, key, msg):
         """ Adds an error entry to the feed """
-
-        if not 'errors' in self:
-            self['errors'] = {}
-
-        self['errors'][key] = msg
+        self.errors[key] = msg
 
 
     def add_warning(self, key, msg):
         """ Adds a warning entry to the feed """
-
-        if not 'warnings' in self:
-            self['warnings'] = {}
-
-        self['warnings'][key] = msg
+        self.warnings[key] = msg
 
 
     @strip_html
     def get_title(self):
-        return self.feed.feed.get('title', None)
+        return None
 
 
     def get_link(self):
-        return self.feed.feed.get('link', None)
+        return None
+
 
     @strip_html
     def get_description(self):
-        return self.feed.feed.get('subtitle', None)
+        return None
 
 
     @strip_html
     def get_author(self):
-        return self.feed.feed.get('author',
-                self.feed.feed.get('itunes_author', None))
+        return None
+
 
     @strip_html
     def get_language(self):
-        return self.feed.feed.get('language', None)
-
-
-    def add_url(self, url):
-        if not 'urls' in self:
-            self['urls'] = []
-
-        self['urls'].append(url)
+        return None
 
 
     def get_urls(self):
-        urls, self.new_loc = httputils.get_redirects(self.feed_url)
+        urls, self.new_loc = httputils.get_redirects(self.url)
         return urls
 
 
     def get_new_location(self):
-        # self.new_loc is set by get_urls()
-        return getattr(self, 'new_loc', False) or \
-               self.feed.feed.get('newlocation', None)
+        return None
 
 
-    def get_podcast_logo(self):
-        cover_art = None
-        image = self.feed.feed.get('image', None)
-        if image is not None:
-            for key in ('href', 'url'):
-                cover_art = getattr(image, key, None)
-                if cover_art:
-                    break
-
-        return cover_art
+    def get_logo_url(self):
+        return None
 
 
-    def get_podcast_logo_inline(self):
+    def get_logo_inline(self):
         """ Fetches the feed's logo and returns its data URI """
 
         if not self.inline_logo:
             return None
 
-        logo_url = self.get('logo', None)
+        logo_url = self.get_logo_url()
 
         if not logo_url:
             return None
@@ -227,36 +202,23 @@ class Feed(dict):
 
 
     def get_feed_tags(self):
-        tags = []
-
-        for tag in self.feed.feed.get('tags', []):
-            if tag['term']:
-                tags.extend(filter(None, tag['term'].split(',')))
-
-            if tag['label']:
-                tags.append(tag['label'])
-
-        return list(set(tags))
+        return None
 
 
     def get_hub_url(self):
-        """
-        Returns the Hub URL as specified by
-        http://pubsubhubbub.googlecode.com/svn/trunk/pubsubhubbub-core-0.3.html#discovery
-        """
-
-        for l in self.feed.feed.get('links', []):
-            if l.rel == 'hub' and l.get('href', None):
-                return l.href
         return None
 
 
     def get_episodes(self):
-        get_episode = lambda e: self.episode_cls(e, self.strip_html)
-        episodes = filter(None, map(get_episode, self.feed.entries))
+        episodes = self.get_episode_objects()
+        common_title = self.get_common_title(episodes)
 
+        return [episode.to_dict(common_title) for episode in episodes]
+
+
+    def get_common_title(self, episodes):
         # We take all non-empty titles
-        titles = filter(None, [e.get('title', None) for e in episodes])
+        titles = filter(None, (e.get_title() for e in episodes))
 
         # get the longest common substring
         common_title = longest_substr(titles)
@@ -265,41 +227,41 @@ class Feed(dict):
         # removing part of the number (eg if a feed contains episodes 100 - 199)
         common_title = re.search(r'^\D*', common_title).group(0)
 
-        for e in episodes:
-            e.update(e.get_additional_episode_data(common_title))
+        if len(common_title.strip()) < 2:
+            return None
 
-        return episodes
+        return common_title
+
+
+
+    def get_episode_objects(self):
+        return []
 
 
     def get_podcast_types(self):
         from feedservice.parserservice.mimetype import get_podcast_types
-        return get_podcast_types(self)
+
+        files = (episode.get_files() for episode in self.get_episode_objects())
+        files = list(flatten(files))
+        return get_podcast_types(f.get('mimetype', None) for f in files)
 
 
     def get_last_modified(self):
-        try:
-            return int(time.mktime(self.last_mod_up.timetuple()))
-        except:
-            return None
-
-
-    def get_etag(self):
-        return self.etag
+        return None
 
 
     def subscribe_at_hub(self, base_url):
         """ Tries to subscribe to the feed if it contains a hub URL """
 
-        if not self.get('hub', False):
+        hub_url = self.get_hub_url()
+        if not hub_url:
             return
 
         from feedservice.pubsubhubbub import subscribe
         from feedservice.pubsubhubbub.models import SubscriptionError
 
         # use the last URL in the redirect chain
-        feed_url = self['urls'][-1]
-
-        hub_url = self.get('hub')
+        feed_url = self.get_urls()[-1]
 
         try:
             subscribe(feed_url, hub_url, base_url)
@@ -307,22 +269,14 @@ class Feed(dict):
             self.add_warning('hub-subscription', repr(e))
 
 
-class Episode(dict):
+
+class Episode(object):
     """ A parsed Episode """
 
 
-    def __init__(self, entry, strip_html):
-        self.strip_html = strip_html
-        self.entry = entry
-        self.process_episode()
+    def to_dict(self, common_title):
 
-
-    def process_episode(self):
-
-        self.files = self.get_episode_files()
-
-        if not self.files:
-            return None
+        self.common_title = common_title
 
         PROPERTIES = (
             ('guid',        self.get_guid),
@@ -334,126 +288,86 @@ class Episode(dict):
             ('language',    self.get_language),
             ('files',       self.get_files),
             ('released',    self.get_timestamp),
+            ('number',      self.get_episode_number),
+            ('short_title', self.get_short_title),
         )
+
+        episode_dict = {}
 
         for name, func in PROPERTIES:
             val = func()
             if val is not None:
-                self[name] = val
+                episode_dict[name] = val
+
+        return episode_dict
 
 
     def get_guid(self):
-        return self.entry.get('id', None)
+        return None
+
 
     @strip_html
     def get_title(self):
-        return self.entry.get('title', None)
+        return None
+
 
     def get_link(self):
-        return self.entry.get('link', None)
+        return None
+
 
     @strip_html
     def get_author(self):
-        return self.entry.get('author', self.entry.get('itunes_author', None))
-
-
-    def get_episode_files(self):
-        """Get the download / episode URL of a feedparser entry"""
-
-        urls = {}
-        enclosures = getattr(self.entry, 'enclosures', [])
-        for enclosure in enclosures:
-            if 'href' in enclosure:
-                mimetype = get_mimetype(enclosure.get('type', ''), enclosure['href'])
-                if check_mimetype(mimetype):
-                    try:
-                        filesize = int(enclosure.get('length', None))
-                    except (TypeError, ValueError):
-                        filesize = None
-                    urls[enclosure['href']] = (mimetype, filesize)
-
-        media_content = getattr(self.entry, 'media_content', [])
-        for media in media_content:
-            if 'url' in media:
-                mimetype = get_mimetype(media.get('type', ''), media['url'])
-                if check_mimetype(mimetype):
-                    urls[media['url']] = (mimetype, None)
-
-        return urls
-
+        return None
 
     @strip_html
     def get_description(self):
-        for key in ('summary', 'subtitle', 'link'):
-            value = self.entry.get(key, None)
-            if value:
-                return value
-
         return None
 
 
     def get_duration(self):
-        str = self.entry.get('itunes_duration', '')
-        try:
-            return parse_time(str)
-        except ValueError:
-            return None
+        return None
 
 
     def get_language(self):
-        return self.entry.get('language', None)
-
-
-    def get_files(self):
-        f = []
-        for k, v in self.files.items():
-            file = dict(url=k)
-            if v[0]:
-                file['mimetype'] = v[0]
-            if v[1]:
-                file['filesize'] = v[1]
-            f.append(file)
-        return f
+        return None
 
 
     def get_timestamp(self):
-        try:
-            return int(time.mktime(self.entry.updated_parsed))
-        except:
-            return None
+        return None
 
 
-    def get_additional_episode_data(self, common_title):
-        """
-        Returns additional data about an episode that is calculated after
-        the first pass over all episodes
-        """
+    def get_files(self):
+        """Get the download / episode URL of a feedparser entry"""
 
-        title = self.get('title', None)
+        files = []
 
-        PROPERTIES = (
-            ('number',      lambda: self.get_episode_number(title, common_title)),
-            ('short_title', lambda: self.get_short_title(title, common_title)),
-        )
+        for url, mimetype, filesize in self.list_files():
 
-        data = {}
-        for name, func in PROPERTIES:
-            val = func()
-            if val is not None:
-                data[name] = val
+            if not check_mimetype(mimetype):
+                continue
 
-        return data
+            f = dict(url=url)
+            if mimetype:
+                f['mimetype'] = mimetype
+            if filesize:
+                f['filesize'] = filesize
 
-    @staticmethod
-    def get_episode_number(title, common_title):
+            files.append(f)
+
+        return files
+
+
+    def get_episode_number(self):
         """
         Returns the first number in the non-repeating part of the episode's title
         """
 
-        if title is None:
+        title = self.get_title()
+
+        if None in (title, self.common_title):
             return None
 
-        title = title.replace(common_title, '').strip()
+        title = title.replace(self.common_title, '').strip()
         match = re.search(r'^\W*(\d+)', title)
         if not match:
             return None
@@ -461,16 +375,17 @@ class Episode(dict):
         return int(match.group(1))
 
 
-    @staticmethod
-    def get_short_title(title, common_title):
+    def get_short_title(self):
         """
         Returns the non-repeating part of the episode's title
         If an episode number is found, it is removed
         """
 
-        if title is None:
+        title = self.get_title()
+
+        if None in (title, self.common_title):
             return None
 
-        title = title.replace(common_title, '').strip()
+        title = title.replace(self.common_title, '').strip()
         title = re.sub(r'^[\W\d]+', '', title)
         return title
