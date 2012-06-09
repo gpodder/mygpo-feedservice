@@ -10,15 +10,16 @@ import StringIO
 from feedservice import urlstore
 from feedservice import httputils
 from feedservice.utils import flatten, longest_substr
-from feedservice.parserservice.mimetype import get_mimetype, check_mimetype
+from feedservice.parserservice import mimetype
 
 
 
 class Feed(object):
     """ A parsed Feed """
 
-    def __init__(self, url):
+    def __init__(self, url, url_obj):
         self.url = url
+        self.url_obj = url_obj
         self.errors = {}
         self.warnings = {}
 
@@ -34,7 +35,8 @@ class Feed(object):
             pass
 
 
-    def to_dict(self, process_text, inline_logo, scale_to, logo_format):
+    def to_dict(self, process_text=lambda _: _, inline_logo=False,
+            scale_to=None, logo_format=None):
         """
         Parses a feed and returns its JSON object, a list of urls that refer to
         this feed, an outgoing redirect and the timestamp of the last modification
@@ -63,7 +65,7 @@ class Feed(object):
             ('content_types',      self.get_podcast_types),
             ('http_last_modified', self.get_last_modified),
             ('episodes',           self.get_episodes),
-#            ('http_etag',          self.get_etag),
+            ('http_etag',          self.get_etag),
         )
 
         for name, func in PROPERTIES:
@@ -104,11 +106,16 @@ class Feed(object):
 
 
     def get_urls(self):
-        urls, self.new_loc = httputils.get_redirects(self.url)
-        return urls
+        if self.url_obj:
+            return self.url_obj.urls
+
+        return None
 
 
     def get_new_location(self):
+        if self.url_obj:
+            return self.url_obj.permanent_redirect
+
         return None
 
 
@@ -142,7 +149,7 @@ class Feed(object):
         #if last_mod_up and mod_since_up and last_mod_up <= mod_since_up:
         #    return None
 
-        mimetype = get_mimetype(None, url)
+        mimetype = mimetype.get_mimetype(None, url)
 
         transform_args = dict(size=self.scale_to, img_format=self.logo_format)
 
@@ -203,6 +210,13 @@ class Feed(object):
         return None
 
 
+    def get_etag(self):
+        if self.url_obj:
+            return self.url_obj.etag
+
+        return None
+
+
     def get_episodes(self):
         episodes = self.get_episode_objects()
         common_title = self.get_common_title(episodes)
@@ -234,11 +248,9 @@ class Feed(object):
 
 
     def get_podcast_types(self):
-        from feedservice.parserservice.mimetype import get_podcast_types
-
         files = (episode.get_files() for episode in self.get_episode_objects())
         files = list(flatten(files))
-        return get_podcast_types(f.get('mimetype', None) for f in files)
+        return mimetype.get_podcast_types(f.get('mimetype', None) for f in files)
 
 
     def get_last_modified(self):
@@ -333,14 +345,14 @@ class Episode(object):
 
         files = []
 
-        for url, mimetype, filesize in self.list_files():
+        for url, mtype, filesize in self.list_files():
 
-            if not check_mimetype(mimetype):
+            if not mimetype.check_mimetype(mtype):
                 continue
 
             f = dict(url=url)
-            if mimetype:
-                f['mimetype'] = mimetype
+            if mtype:
+                f['mimetype'] = mtype
             if filesize:
                 f['filesize'] = filesize
 

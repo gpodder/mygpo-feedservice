@@ -57,6 +57,20 @@ class YoutubeFeed(FeedparserFeed):
         return any(regex.match(url) for regex in cls.re_youtube_feeds)
 
 
+
+    def __init__(self, url, url_obj):
+        super(YoutubeFeed, self).__init__(url, url_obj)
+        for reg in self.re_youtube_feeds:
+            m = reg.match(url)
+            if m:
+                self.username = m.group('username')
+                return
+
+
+    def get_description(self):
+        return 'Youtube uploads by %s' % self.username
+
+
     def get_podcast_logo(self):
         url = self.feed.feed.get('link', False)
         m = self.re_cover.match(url)
@@ -91,6 +105,10 @@ class YoutubeFeed(FeedparserFeed):
             return next
 
         return self.url
+
+
+    def get_podcast_types(self):
+        return ["video"]
 
 
 class YoutubeEpisode(FeedparserEpisode):

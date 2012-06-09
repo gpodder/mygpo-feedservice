@@ -5,27 +5,28 @@
 #
 #
 
-import urllib
-import urllib2
-import urlparse
 import logging
 from datetime import timedelta
 
 from django.http import HttpResponseNotFound
+from django.views.generic.base import View
 from couchdbkit.ext.django import *
 
 from feedservice import urlstore
 from feedservice.pubsubhubbub.models import SubscriptionError, SubscribedFeed
-from feedservice.pubsubhubbub import get_subscription
+
+
+logger = logging.getLogger(__name__)
 
 
 # increased expiry time for subscribed feeds
 INCREASED_EXPIRY = timedelta(days=7)
 
 
-def subscribe(request):
+class SubscribeView(View):
+    """ Endpoint for Pubsubhubbub subscriptions """
 
-    if request.method == 'GET':
+    def get(request):
         """ Callback used by the Hub to verify the subscription request """
 
         # received arguments: hub.mode, hub.topic, hub.challenge,
@@ -36,54 +37,54 @@ def subscribe(request):
         lease_seconds = request.GET.get('hub.lease_seconds')
         verify_token  = request.GET.get('hub.verify_token')
 
-        logging.debug(('received subscription-parameters: mode: %(mode)s, ' +
+        logger.debug(('received subscription-parameters: mode: %(mode)s, ' +
                 'topic: %(topic)s, challenge: %(challenge)s, lease_seconds: ' +
                 '%(lease_seconds)s, verify_token: %(verify_token)s') % \
                 dict(mode=mode, topic=feed_url, challenge=challenge,
                      lease_seconds=lease_seconds, verify_token=verify_token))
 
-        subscription = get_subscription(feed_url)
+        subscription = SubscribedFeed.for_url(feed_url)
 
         if subscription is None:
-            logging.warn('subscription does not exist')
+            logger.warn('subscription does not exist')
             return HttpResponseNotFound()
 
         if subscription.mode != mode:
-            logging.warn('invalid mode, %s expected' %
+            logger.warn('invalid mode, %s expected' %
                 subscription.mode)
             return HttpResponseNotFound()
 
         if subscription.verify_token != verify_token:
-            logging.warn('invalid verify_token, %s expected' %
+            logger.warn('invalid verify_token, %s expected' %
                 subscribe.verify_token)
             return HttpResponseNotFound()
 
         subscription.verified = True
         subscription.save()
 
-        logging.info('subscription confirmed')
+        logger.info('subscription confirmed')
         return HttpResponse(challenge)
 
 
-    elif request.method == 'POST':
+    def post(request):
         """ Callback to notify about a feed update """
 
         feed_url = request.GET.get('url')
 
-        logging.info('received notification for %s' % feed_url)
+        logger.info('received notification for %s' % feed_url)
 
-        subscription = get_subscription(feed_url)
+        subscription = SubscribedFeed.for_url(feed_url)
 
         if subscription is None:
-            logging.warn('no subscription for this URL')
+            logger.warn('no subscription for this URL')
             return HttpResponse(status=400)
 
         if subscription.mode != 'subscribe':
-            logging.warn('invalid subscription mode: %s' % subscription.mode)
+            logger.warn('invalid subscription mode: %s' % subscription.mode)
             return HttpResponse(status=400)
 
         if not subscription.verified:
-            logging.warn('the subscription has not yet been verified')
+            logger.warn('the subscription has not yet been verified')
             return HttpResponse(status=400)
 
         # The changed parts in the POST data are ignored -- we simply fetch the

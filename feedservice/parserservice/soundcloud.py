@@ -21,11 +21,6 @@
 # Soundcloud.com API client module for gPodder
 # Thomas Perl <thp@gpodder.org>; 2009-11-03
 
-try:
-    import simplejson as json
-except ImportError:
-    import json
-
 import os
 import time
 
@@ -38,6 +33,7 @@ from django.conf import settings
 from feedservice.parserservice.models import Feed, Episode
 from feedservice.urlstore import get_url
 from feedservice.parserservice.mimetype import get_mimetype
+from feedservice.json import json
 
 
 
@@ -51,9 +47,9 @@ class SoundcloudUser(object):
         image = None
         try:
             json_url = 'http://api.soundcloud.com/users/%s.json?consumer_key=%s' % (self.username, settings.SOUNDCLOUD_CONSUMER_KEY)
-            _url, content, _last_mod_up, _last_mod_utc, etag, _content_type, \
-            _length = get_url(json_url)
-            user_info = json.loads(content)
+
+            res = get_url(json_url)
+            user_info = json.loads(res.get_content())
             return user_info.get('avatar_url', None)
 
         except:
@@ -68,9 +64,9 @@ class SoundcloudUser(object):
 
         json_url = 'http://api.soundcloud.com/users/%(user)s/%(feed)s.json?filter=downloadable&consumer_key=%(consumer_key)s' \
                 % { "user":self.username, "feed":feed, "consumer_key": settings.SOUNDCLOUD_CONSUMER_KEY }
-        _url, content, _last_mod_up, _last_mod_utc, etag, _content_type, \
-        _length = get_url(json_url)
-        tracks = (track for track in json.loads(content) \
+
+        res = get_url(json_url)
+        tracks = (track for track in json.loads(res.get_content()) \
                 if track['downloadable'])
 
         for track in tracks:
@@ -79,17 +75,13 @@ class SoundcloudUser(object):
                 '?consumer_key=%(consumer_key)s' \
                 % { 'consumer_key': settings.SOUNDCLOUD_CONSUMER_KEY }
 
-            filesize, filetype, filename = self.get_metadata(url)
-
             yield {
                 'title': track.get('title', track.get('permalink', 'Unknown track')),
                 'link': track.get('permalink_url', 'http://soundcloud.com/'+self.username),
                 'description': track.get('description', 'No description available'),
                 'url': url,
-                'length': int(filesize),
-                'mimetype': filetype,
                 'guid': track.get('permalink', track.get('id')),
-                'pubDate': self.soundcloud_parsedate(track.get('created_at', None)),
+                'pubDate': self.parsedate(track.get('created_at', None)),
             }
 
 
@@ -124,14 +116,13 @@ class SoundcloudUser(object):
         metadata via the HTTP header fields.
         """
 
-        feed_url, feed_content, last_mod_up, last_mod_utc, etag, content_type, \
-        length = get_url(url)
+        res = get_url(url, headers_only=True)
 
-        return length, content_type, os.path.basename(os.path.dirname(url))
+        return res.length, res.content_type, os.path.basename(os.path.dirname(res.url))
 
 
     @staticmethod
-    def soundcloud_parsedate(s):
+    def parsedate(s):
         """Parse a string into a unix timestamp
 
         Only strings provided by Soundcloud's API are
@@ -149,13 +140,13 @@ class SoundcloudFeed(Feed):
         return bool(cls.URL_REGEX.match(url))
 
 
-    def __init__(self, feed_url, content):
-        self.strip_html = kwargs.get('strip_html', False)
+    def __init__(self, feed_url, res, strip_html=False, **kwargs):
+        self.strip_html = strip_html
         m = self.__class__.URL_REGEX.match(feed_url)
         subdomain, self.username = m.groups()
         self.sc_user = SoundcloudUser(self.username)
 
-        super(SoundcloudFeed, self).__init__(feed_url)
+        super(SoundcloudFeed, self).__init__(feed_url, res)
 
 
     def get_title(self):

@@ -3,39 +3,43 @@ import time
 import urllib2
 from email import utils
 import base64
+from collections import namedtuple
+import logging
 
 from couchdbkit.ext.django.schema import *
 from django.core.cache import cache
 
 from feedservice.urlstore.models import URLObject
+from feedservice.httputils import RedirectCollector
 
+
+logger = logging.getLogger(__name__)
 
 USER_AGENT = 'mygpo-feedservice +http://feeds.gpodder.net/'
 
 
-def get_url(url, use_cache=True, headers_only=False):
+def get_url(url, cache=True, headers_only=False):
     """
     Gets the contents for the given URL from either memcache,
     the datastore or the URL itself
     """
 
-    cached = from_cache(url) if use_cache else None
+    logger.info('URLStore: retrieving ' + url)
+
+    cached = cache.get(url) if cache else None
 
     if not cached or cached.expired() or not cached.valid():
-        resp = fetch_url(url, cached, headers_only)
+        logger.info('URLStore: not using cache')
+        obj = fetch_url(url, cached, headers_only)
+
     else:
-        content = base64.b64decode(cached.content)
-        resp = cached.url, content, cached.last_mod_up, cached.last_mod_utc, \
-               cached.etag, cached.content_type, cached_length
+        logger.info('URLStore: found in cache')
+        obj = cached
 
-    return resp
+    if cache:
+        cache.set(obj)
 
-
-def from_cache(url):
-    """
-    Tries to get the object for the given URL from Memcache or the Datastore
-    """
-    return cache.get(url)
+    return obj
 
 
 def fetch_url(url, cached=None, headers_only=False, add_expires=timedelta()):
@@ -43,9 +47,15 @@ def fetch_url(url, cached=None, headers_only=False, add_expires=timedelta()):
     Fetches the given URL and stores the resulting object in the Cache
     """
 
+    collector = RedirectCollector(url)
+
     request = urllib2.Request(url)
+
+    if headers_only:
+        request.get_method = lambda: 'HEAD'
+
     request.add_header('User-Agent', USER_AGENT)
-    opener = urllib2.build_opener()
+    opener = urllib2.build_opener(collector)
 
     if getattr(cached, 'last_modified', False):
         lm_str = utils.formatdate(time.mktime(cached.last_mod_up.timetuple()))
@@ -56,7 +66,12 @@ def fetch_url(url, cached=None, headers_only=False, add_expires=timedelta()):
 
     try:
         obj = cached or URLObject(url=url)
+
         r = opener.open(request)
+
+        obj.urls = collector.get_redirects()
+        obj.permanent_redirect = collector.permanent_redirect
+
         headers = r.info()
 
         if not headers_only:
@@ -81,20 +96,19 @@ def fetch_url(url, cached=None, headers_only=False, add_expires=timedelta()):
         elif add_expires:
             obj.expires = datetime.utcnow() + add_expires
 
-        cache.set(url, obj)
         r.close()
 
     except urllib2.HTTPError, e:
+        logger.info('HTTP %d' % e.code)
+
         if e.code == 304:
             obj = cached
+        elif e.code == 403:
+            return URLObject(url=url)
         else:
-            pass
-    except DownloadError:
-        pass
+            raise
 
-    content = base64.b64decode(obj.content) if obj.content else None
-    return obj.url, content, obj.last_mod_up, \
-           obj.last_mod_utc, obj.etag, obj.content_type, obj.length
+    return obj
 
 
 def parse_header_date(date_str):

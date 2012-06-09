@@ -11,9 +11,6 @@ ADMINS = (
 
 MANAGERS = ADMINS
 
-DATABASES = {
-}
-
 # Local time zone for this installation. Choices can be found here:
 # http://en.wikipedia.org/wiki/List_of_tz_zones_by_name
 # although not all choices may be available on all operating systems.
@@ -71,11 +68,11 @@ INSTALLED_APPS = (
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
-    'django.contrib.sites',
     'django.contrib.messages',
     'couchdbkit.ext.django',
     'feedservice.parserservice',
     'feedservice.pubsubhubbub',
+    'feedservice.urlstore',
 )
 
 BASE_URL='http://localhost:8080/'

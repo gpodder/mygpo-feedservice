@@ -21,12 +21,12 @@ from feedservice.parserservice.mimetype import get_mimetype, check_mimetype
 class FeedparserFeed(Feed):
     """ A parsed Feed """
 
-    def __init__(self, url, content):
+    def __init__(self, url, url_obj):
 
-        super(FeedparserFeed, self).__init__(url)
+        super(FeedparserFeed, self).__init__(url, url_obj)
 
         self.episodes = None
-        self.feed = feedparser.parse(content)
+        self.feed = feedparser.parse(url_obj.get_content())
 
 
     @classmethod
@@ -54,15 +54,9 @@ class FeedparserFeed(Feed):
         return self.feed.feed.get('language', None)
 
 
-    def get_urls(self):
-        urls, self.new_loc = httputils.get_redirects(self.url)
-        return urls
-
-
     def get_new_location(self):
-        # self.new_loc is set by get_urls()
-        return getattr(self, 'new_loc', False) or \
-               self.feed.feed.get('newlocation', None)
+        return super(FeedparserFeed, self).get_new_location() or \
+            self.feed.feed.get('newlocation', None)
 
 
     def get_podcast_logo(self):

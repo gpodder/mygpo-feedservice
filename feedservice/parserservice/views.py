@@ -5,198 +5,93 @@
 import urllib
 import time
 import email.utils
-import logging
 import cgi
 from datetime import datetime
-from functools import partial
-
 
 from django.http import HttpResponse
-from django.shortcuts import render_to_response
+from django.shortcuts import render
+from django.contrib.sites.models import get_current_site
+from django.views.generic.base import View
 
-from feedservice.parserservice.models import Feed
-from feedservice import urlstore
-from feedservice import  httputils
-from feedservice.utils import remove_html_tags, convert_markdown
-from feedservice.parserservice import feed, youtube, soundcloud, fm4
-
-try:
-    import simplejson as json
-except ImportError:
-    import json
+from feedservice.httputils import select_matching_option
+from feedservice.parserservice import parse_feeds
+from feedservice.json import json
+from feedservice.parserservice.text import get_text_processor
+from feedservice.urlstore.cache import URLObjectCache
 
 
-class UnchangedException(Exception):
-    pass
-
-
-FEED_CLASSES = (
-        youtube.YoutubeFeed,
-        soundcloud.SoundcloudFeed,
-        soundcloud.SoundcloudFavFeed,
-        fm4.FM4OnDemandPlaylist,
-        feed.FeedparserFeed,
-    )
-
-
-TEXT_PROCESSORS = {
-    "strip_html": remove_html_tags,
-    "markdown": convert_markdown,
-    "none": lambda x: x
-}
-
-
-def parse(request):
+class ParseView(View):
     """ Parser Endpoint """
 
-    urls = map(urllib.unquote, request.GET.getlist('url'))
+    def get(self, request):
 
-    parse_args = dict(
-        inline_logo = request.GET.get('inline_logo', default=0),
-        scale_to    = request.GET.get('scale_logo',  default=0),
-        logo_format = request.GET.get('logo_format', None),
-        use_cache   = request.GET.get('use_cache',   default=1),
-    )
+        urls = map(urllib.unquote, request.GET.getlist('url'))
 
-    # support deprecated param 'strip_html'; newer 'process_text' overrides
-    if int(request.GET.get('strip_html', 0)):
-        process_text = get_text_processor('strip_html')
+        parse_args = dict(
+            inline_logo = request.GET.get('inline_logo', default=0),
+            scale_to    = request.GET.get('scale_logo',  default=0),
+            logo_format = request.GET.get('logo_format', None),
+        )
 
-    process_text  = get_text_processor(request.GET.get('process_text', ''))
+        # support deprecated param 'strip_html'; newer 'process_text' overrides
+        if int(request.GET.get('strip_html', 0)):
+            process_text = get_text_processor('strip_html')
 
-    mod_since_utc = request.META.get('HTTP_IF_MODIFIED_SINCE', None)
-    accept = request.META.get('HTTP_ACCEPT', 'application/json')
+        process_text  = get_text_processor(request.GET.get('process_text', ''))
 
-    base_url = request.build_absolute_uri('/')
+        if request.GET.get('use_cache', default=1):
+            cache = URLObjectCache()
+        else:
+            cache = None
 
-    if urls:
-        podcasts = parse_feeds(urls, mod_since_utc, base_url, process_text,
-                **parse_args)
+        mod_since_utc = request.META.get('HTTP_IF_MODIFIED_SINCE', None)
+        accept = request.META.get('HTTP_ACCEPT', 'application/json')
 
-        last_mod_utc = datetime.utcnow()
-        response = send_response(podcasts, last_mod_utc, accept)
+        base_url = request.build_absolute_uri('/')
 
-    else:
-        response = HttpResponse()
-        response.status_code = 400
-        response.write('parameter url missing')
+        if urls:
+            podcasts = parse_feeds(urls, mod_since_utc, base_url, process_text,
+                    cache, **parse_args)
 
-    return response
+            last_mod_utc = datetime.utcnow()
+            response = self.send_response(request, podcasts, last_mod_utc, accept)
 
+        else:
+            response = HttpResponse()
+            response.status_code = 400
+            response.write('parameter url missing')
 
-def send_response(podcasts, last_mod_utc, formats):
-
-    format = httputils.select_matching_option(['text/html', 'application/json'], formats)
-
-    if format in (None, 'application/json'): #serve json as default
-        response = HttpResponse()
-        content_type = 'application/json'
-        response.write(json.dumps(podcasts, sort_keys=True, indent=None, separators=(',', ':')))
-        response['Last-Modified'] = email.utils.formatdate(time.mktime(last_mod_utc.timetuple()))
+        return response
 
 
-    else:
-        content_type = 'text/html'
-        pretty_json = json.dumps(podcasts, sort_keys=True, indent=4)
-        pretty_json = cgi.escape(pretty_json)
-        response = render_to_response('pretty_response.html', {
-                'response': pretty_json
+    def send_response(self, request, podcasts, last_mod_utc, accepted_formats):
+
+        SUPPORTED_FORMATS = ['text/html', 'application/json']
+
+        fmt = select_matching_option(SUPPORTED_FORMATS, accepted_formats)
+
+        if fmt in (None, 'application/json'): #serve json as default
+            content_type = 'application/json'
+            response = HttpResponse()
+
+            dense_json = json.dumps(podcasts, sort_keys=True,
+                    indent=None, separators=(',', ':'))
+            response.write(dense_json)
+
+            last_mod_time = time.mktime(last_mod_utc.timetuple())
+            response['Last-Modified'] = email.utils.formatdate(last_mod_time)
+
+
+        else:
+            content_type = 'text/html'
+            pretty_json = json.dumps(podcasts, sort_keys=True, indent=4)
+            pretty_json = cgi.escape(pretty_json)
+            response = render(request, 'pretty_response.html', {
+                    'response': pretty_json,
+                    'site': get_current_site(request),
                 })
 
-    response['Content-Type'] = content_type
+        response['Content-Type'] = content_type
+        response['Vary'] = 'Accept, User-Agent, Accept-Encoding'
 
-    response['Vary'] = 'Accept, User-Agent, Accept-Encoding'
-    return response
-
-
-def parse_feeds(feed_urls, mod_since_utc, base_url, process_text, **kwargs):
-    """
-    Parses several feeds, specified by feed_urls and returns their JSON
-    objects and the latest of their modification dates. RSS-Redirects are
-    followed automatically by including both feeds in the result.
-    """
-
-    visited_urls = set()
-    result = []
-
-    for url in feed_urls:
-
-        feed = parse_feed(url, mod_since_utc, base_url, process_text,  **kwargs)
-
-        if not feed:
-            continue
-
-        visited  = feed['urls']
-        new_loc  = feed.get('new_location', None)
-
-        # we follow RSS-redirects automatically
-        if new_loc and new_loc not in (list(visited_urls) + feed_urls):
-            feed_urls.append(new_loc)
-
-        result.append(feed)
-
-    return result
-
-
-def get_feed_cls(url):
-    feed_cls = None
-
-    for cls in FEED_CLASSES:
-        if cls.handles_url(url):
-            return cls
-
-    raise ValueError('no feed can handle %s' % url)
-
-
-def parse_feed(feed_url, mod_since_utc, base_url, process_text, use_cache,
-        **kwargs):
-    """
-    Parses a feed and returns its JSON object, a list of urls that refer to
-    this feed, an outgoing redirect and the timestamp of the last modification
-    of the feed
-    """
-
-    feed_cls = get_feed_cls(feed_url)
-
-    try:
-        feed_url, content, last_mod_up, last_mod_utc, etag, content_type, \
-        length = urlstore.get_url(feed_url, use_cache)
-
-        if last_mod_utc and mod_since_utc and last_mod_utc <= mod_since_utc:
-            raise UnchangedException
-
-    except Exception, e:
-        raise
-        # create a dummy feed to hold the error message and the feed URL
-        feed = Feed(feed_url, None)
-        msg = 'could not fetch feed %(feed_url)s: %(msg)s' % \
-            dict(feed_url=feed_url, msg=str(e))
-        feed.add_error('fetch-feed', msg)
-        logging.info(msg)
-        feed.add_url(feed_url)
-        return feed
-
-    except UnchangedException as e:
-        return None
-
-    feed = feed_cls(feed_url, content)
-
-    feed.subscribe_at_hub(base_url)
-
-    return feed.to_dict(process_text, **kwargs)
-
-
-def get_text_processor(s):
-    processing = TEXT_PROCESSORS.get(s, lambda x: x)
-    return partial(apply_text_processing, processing)
-
-
-def apply_text_processing(processing, obj):
-
-    if isinstance(obj, basestring):
-        return processing(obj)
-
-    elif isinstance(obj, list):
-        return [apply_text_processing(processing, x) for x in obj]
-
-    return obj
+        return response

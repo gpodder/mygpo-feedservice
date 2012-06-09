@@ -5,8 +5,9 @@ import urlparse
 class RedirectCollector(urllib2.HTTPRedirectHandler):
     """Collects all seen (intermediate) redirects for a HTTP request"""
 
-    def __init__(self, *args, **kwargs):
-        self.urls = []
+    def __init__(self, url, *args, **kwargs):
+        self.url = url
+        self.urls = [url]
         self.permanent_redirect = None
 
     def http_error_301(self, req, fp, code, msg, hdrs):
@@ -18,7 +19,7 @@ class RedirectCollector(urllib2.HTTPRedirectHandler):
     def redirect_request(self, req, fp, code, msg, hdrs, newurl):
 
         # automatically follow non-permanent redirects
-        if code == 302:
+        if code in (302, 303):
             self.urls.append(newurl)
             return urllib2.HTTPRedirectHandler.redirect_request(self, req, fp, code, msg, hdrs, newurl)
 
@@ -28,25 +29,17 @@ class RedirectCollector(urllib2.HTTPRedirectHandler):
             return None
 
 
-def get_redirects(url):
-    """ Returns the complete redirect chain, starting from url """
-    collector = RedirectCollector()
-    collector.urls.append(url)
-    opener = urllib2.build_opener(collector)
+    def get_redirects(self):
+        """ Returns the complete redirect chain, starting from url """
 
-    try:
-        opener.open(url)
-    except urllib2.HTTPError:
-        return [url], None
+        urls = map(basic_sanitizing, self.urls)
 
-    urls = map(basic_sanitizing, collector.urls)
+        # include un-sanitized URL for easy matching of
+        #response to request URLs
+        if urls[0] != self.url:
+            urls.insert(0, self.url)
 
-    # include un-sanitized URL for easy matching of
-    #response to request URLs
-    if urls[0] != url:
-        urls.insert(0, url)
-
-    return urls, collector.permanent_redirect
+        return urls
 
 
 def basic_sanitizing(url):
