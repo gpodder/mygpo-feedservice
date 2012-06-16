@@ -11,6 +11,7 @@ from feedservice import urlstore
 from feedservice import httputils
 from feedservice.utils import flatten, longest_substr
 from feedservice.parserservice import mimetype
+from feedservice.parserservice.bitlove import get_bitlove_torrent
 
 
 
@@ -345,16 +346,20 @@ class Episode(object):
 
         files = []
 
-        for url, mtype, filesize in self.list_files():
+        for urls, mtype, filesize in self.list_files():
 
             if not mimetype.check_mimetype(mtype):
                 continue
 
-            f = dict(url=url)
+            f = dict(urls=urls)
             if mtype:
                 f['mimetype'] = mtype
             if filesize:
                 f['filesize'] = filesize
+
+            bitlove_torrent = get_bitlove_torrent(urls)
+            if bitlove_torrent:
+                f['bitlove'] = bitlove_torrent
 
             files.append(f)
 
