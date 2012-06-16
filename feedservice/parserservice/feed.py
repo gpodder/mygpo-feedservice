@@ -154,7 +154,8 @@ class FeedparserEpisode(Episode):
             except (TypeError, ValueError):
                 filesize = None
 
-            yield (enclosure['href'], mimetype, filesize)
+            urls = httputils.get_redirect_chain(enclosure['href'])
+            yield (urls, mimetype, filesize)
 
 
         media_content = getattr(self.entry, 'media_content', [])
@@ -164,7 +165,8 @@ class FeedparserEpisode(Episode):
 
             mimetype = get_mimetype(media.get('type', ''), media['url'])
 
-            yield media['url'], mimetype, None
+            urls = httputils.get_redirect_chain(media['url'])
+            yield urls, mimetype, None
 
 
     def get_description(self):

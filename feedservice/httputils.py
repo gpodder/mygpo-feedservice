@@ -2,6 +2,14 @@ import urllib2
 import urlparse
 
 
+USER_AGENT = 'mygpo-feedservice +http://feeds.gpodder.net/'
+
+
+class HeadRequest(urllib2.Request):
+    def get_method(self):
+        return "HEAD"
+
+
 class RedirectCollector(urllib2.HTTPRedirectHandler):
     """Collects all seen (intermediate) redirects for a HTTP request"""
 
@@ -10,11 +18,12 @@ class RedirectCollector(urllib2.HTTPRedirectHandler):
         self.urls = [url]
         self.permanent_redirect = None
 
+    def http_error_default(self, req, fp, code, msg, hdrs):
+        pass
+
     def http_error_301(self, req, fp, code, msg, hdrs):
-        try:
-            return urllib2.HTTPRedirectHandler.http_error_301(self, req, fp, code, msg, hdrs)
-        except urllib2.HTTPError:
-            pass
+        self.permanent_redirect = hdrs['Location']
+        return True
 
     def redirect_request(self, req, fp, code, msg, hdrs, newurl):
 
@@ -40,6 +49,20 @@ class RedirectCollector(urllib2.HTTPRedirectHandler):
             urls.insert(0, self.url)
 
         return urls
+
+
+def get_redirect_chain(url):
+    collector = RedirectCollector(url)
+    request = HeadRequest(url)
+    request.add_header('User-Agent', USER_AGENT)
+    opener = urllib2.build_opener(collector)
+    r = opener.open(request)
+
+    urls = collector.get_redirects()
+    if collector.permanent_redirect:
+        urls.append(collector.permanent_redirect)
+
+    return urls
 
 
 def basic_sanitizing(url):
