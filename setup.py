@@ -49,5 +49,11 @@ setup(name=PACKAGE,
       url=WEBSITE,
       packages=PACKAGES,
       scripts=SCRIPTS,
-      download_url=WEBSITE+PACKAGE+'-'+VERSION+'.tar.gz')
+      download_url=WEBSITE+PACKAGE+'-'+VERSION+'.tar.gz',
+      package_data = {
+        'feedservice.pubsubhubbub': ['_design/*/*/*'],
+        'feedservice.urlstore': ['_design/*/*/*'],
+        'feedservice.parse': ['templates/*.html'],
+      },
+)
 
