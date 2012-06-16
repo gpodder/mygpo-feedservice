@@ -30,9 +30,9 @@ import email.Header
 
 from django.conf import settings
 
-from feedservice.parserservice.models import Feed, Episode
+from feedservice.parse.models import Feed, Episode
 from feedservice.urlstore import get_url
-from feedservice.parserservice.mimetype import get_mimetype
+from feedservice.parse.mimetype import get_mimetype
 from feedservice.json import json
 
 

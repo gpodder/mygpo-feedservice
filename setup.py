@@ -18,7 +18,7 @@ docstrings = re.findall('"""(.*?)"""', main_py, re.DOTALL)
 # List the packages that need to be installed/packaged
 PACKAGES = (
         PACKAGE,
-        'feedservice.parserservice',
+        'feedservice.parse',
         'feedservice.pubsubhubbub',
         'feedservice.urlstore',
 )

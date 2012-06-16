@@ -4,9 +4,9 @@
 
 import logging
 
-from feedservice.parserservice.models import Feed
+from feedservice.parse.models import Feed
 from feedservice import urlstore
-from feedservice.parserservice import feed, youtube, soundcloud, fm4
+from feedservice.parse import feed, youtube, soundcloud, fm4
 
 
 logger = logging.getLogger(__name__)

@@ -9,12 +9,12 @@ import feedparser
 import Image
 import StringIO
 
-from feedservice.parserservice.models import Feed, Episode
+from feedservice.parse.models import Feed, Episode
 
 from feedservice import urlstore
 from feedservice import httputils
 from feedservice.utils import parse_time, longest_substr
-from feedservice.parserservice.mimetype import get_mimetype, check_mimetype
+from feedservice.parse.mimetype import get_mimetype, check_mimetype
 
 
 

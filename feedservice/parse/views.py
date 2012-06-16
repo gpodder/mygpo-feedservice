@@ -14,9 +14,9 @@ from django.contrib.sites.models import get_current_site
 from django.views.generic.base import View
 
 from feedservice.httputils import select_matching_option
-from feedservice.parserservice import parse_feeds
+from feedservice.parse import parse_feeds
 from feedservice.json import json
-from feedservice.parserservice.text import get_text_processor
+from feedservice.parse.text import get_text_processor
 from feedservice.urlstore.cache import URLObjectCache
 
 

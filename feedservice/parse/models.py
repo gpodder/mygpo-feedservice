@@ -10,8 +10,8 @@ import StringIO
 from feedservice import urlstore
 from feedservice import httputils
 from feedservice.utils import flatten, longest_substr
-from feedservice.parserservice import mimetype
-from feedservice.parserservice.bitlove import get_bitlove_torrent
+from feedservice.parse import mimetype
+from feedservice.parse.bitlove import get_bitlove_torrent
 
 
 

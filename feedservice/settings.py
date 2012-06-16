@@ -70,7 +70,7 @@ INSTALLED_APPS = (
     'django.contrib.sessions',
     'django.contrib.messages',
     'couchdbkit.ext.django',
-    'feedservice.parserservice',
+    'feedservice.parse',
     'feedservice.pubsubhubbub',
     'feedservice.urlstore',
 )

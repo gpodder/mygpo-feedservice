@@ -20,7 +20,7 @@
 import re
 import urllib
 
-from feedservice.parserservice.feed import FeedparserFeed, FeedparserEpisode
+from feedservice.parse.feed import FeedparserFeed, FeedparserEpisode
 from feedservice.urlstore import get_url
 
 # See http://en.wikipedia.org/wiki/YouTube#Quality_and_codecs
