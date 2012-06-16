@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 USER_AGENT = 'mygpo-feedservice +http://feeds.gpodder.net/'
 
 
-def get_url(url, cache=True, headers_only=False):
+def get_url(url, use_cache=True, headers_only=False):
     """
     Gets the contents for the given URL from either memcache,
     the datastore or the URL itself
@@ -26,7 +26,7 @@ def get_url(url, cache=True, headers_only=False):
 
     logger.info('URLStore: retrieving ' + url)
 
-    cached = cache.get(url) if cache else None
+    cached = cache.get(url) if use_cache else None
 
     if not cached or cached.expired() or not cached.valid():
         logger.info('URLStore: not using cache')
@@ -36,8 +36,8 @@ def get_url(url, cache=True, headers_only=False):
         logger.info('URLStore: found in cache')
         obj = cached
 
-    if cache:
-        cache.set(obj)
+    if use_cache:
+        cache.set(url, obj)
 
     return obj
 
