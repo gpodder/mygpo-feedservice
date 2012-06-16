@@ -122,7 +122,7 @@ class YoutubeEpisode(FeedparserEpisode):
             dl_url = self.get_real_download_url(url)
 
             if self.is_video_link(url):
-                yield (dl_url, 'application/x-youtube', None)
+                yield ([dl_url], 'application/x-youtube', None)
 
 
     def is_video_link(self, url):

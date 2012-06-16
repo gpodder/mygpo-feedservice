@@ -159,7 +159,7 @@ class FM4Episode(Episode):
             return
 
         mimetype = get_mimetype(None, self.url)
-        yield (self.url, mimetype, None)
+        yield ([self.url], mimetype, None)
 
 
     def get_timestamp(self):

@@ -236,7 +236,7 @@ class SoundcloudEpisode(Episode):
         mimetype = get_mimetype(self.entry.get('mimetype', None), url)
         filesize = self.entry.get('length', None)
 
-        yield (url, mimetype, filesize)
+        yield ([url], mimetype, filesize)
 
 
     def get_timestamp(self):
