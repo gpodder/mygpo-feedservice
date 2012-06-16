@@ -59,16 +59,15 @@ class FeedparserFeed(Feed):
             self.feed.feed.get('newlocation', None)
 
 
-    def get_podcast_logo(self):
-        cover_art = None
+    def get_logo_url(self):
         image = self.feed.feed.get('image', None)
         if image is not None:
             for key in ('href', 'url'):
                 cover_art = getattr(image, key, None)
                 if cover_art:
-                    break
+                    return cover_art
 
-        return cover_art
+        return None
 
 
 
