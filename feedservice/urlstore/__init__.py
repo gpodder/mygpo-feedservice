@@ -7,7 +7,7 @@ from collections import namedtuple
 import logging
 
 from couchdbkit.ext.django.schema import *
-from django.core.cache import cache
+from django.core.cache import cache as ccache
 
 from feedservice.urlstore.models import URLObject
 from feedservice.httputils import RedirectCollector
@@ -26,7 +26,7 @@ def get_url(url, use_cache=True, headers_only=False):
 
     logger.info('URLStore: retrieving ' + url)
 
-    cached = cache.get(url) if use_cache else None
+    cached = ccache.get(url) if use_cache else None
 
     if not cached or cached.expired() or not cached.valid():
         logger.info('URLStore: not using cache')
@@ -37,7 +37,7 @@ def get_url(url, use_cache=True, headers_only=False):
         obj = cached
 
     if use_cache:
-        cache.set(url, obj)
+        ccache.set(url, obj)
 
     return obj
 
