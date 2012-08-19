@@ -25,7 +25,7 @@ class ParseView(View):
 
     def get(self, request):
 
-        urls = map(urllib.unquote, request.GET.getlist('url'))
+        urls = map(urllib.unquote, request.REQUEST.getlist('url'))
 
         parse_args = dict(
             inline_logo = request.GET.get('inline_logo', default=0),
@@ -62,6 +62,8 @@ class ParseView(View):
             response.write('parameter url missing')
 
         return response
+
+    post = get
 
 
     def send_response(self, request, podcasts, last_mod_utc, accepted_formats):
