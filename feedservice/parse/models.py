@@ -357,9 +357,10 @@ class Episode(object):
             if filesize:
                 f['filesize'] = filesize
 
-            bitlove_torrent = get_bitlove_torrent(urls)
-            if bitlove_torrent:
-                f['bitlove'] = bitlove_torrent
+#           TODO: optional
+#           bitlove_torrent = get_bitlove_torrent(urls)
+#           if bitlove_torrent:
+#               f['bitlove'] = bitlove_torrent
 
             files.append(f)
 

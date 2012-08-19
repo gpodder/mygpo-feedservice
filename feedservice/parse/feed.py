@@ -12,7 +12,6 @@ import StringIO
 from feedservice.parse.models import Feed, Episode
 
 from feedservice import urlstore
-from feedservice import httputils
 from feedservice.utils import parse_time, longest_substr
 from feedservice.parse.mimetype import get_mimetype, check_mimetype
 
@@ -153,7 +152,8 @@ class FeedparserEpisode(Episode):
             except (TypeError, ValueError):
                 filesize = None
 
-            urls = httputils.get_redirect_chain(enclosure['href'])
+            #TODO: optional: urls = httputils.get_redirect_chain(enclosure['href'])
+            urls = [enclosure['href']]
             yield (urls, mimetype, filesize)
 
 
@@ -164,8 +164,9 @@ class FeedparserEpisode(Episode):
 
             mimetype = get_mimetype(media.get('type', ''), media['url'])
 
-            urls = httputils.get_redirect_chain(media['url'])
-            yield urls, mimetype, None
+            #TODO: optional: urls = httputils.get_redirect_chain(media['url'])
+            urls = [media['url']]
+            yield urls, mimetype, filesize
 
 
     def get_description(self):
