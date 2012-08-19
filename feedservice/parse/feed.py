@@ -164,6 +164,11 @@ class FeedparserEpisode(Episode):
 
             mimetype = get_mimetype(media.get('type', ''), media['url'])
 
+            try:
+                filesize = int(media.get('fileSize', None))
+            except (TypeError, ValueError):
+                filesize = None
+
             #TODO: optional: urls = httputils.get_redirect_chain(media['url'])
             urls = [media['url']]
             yield urls, mimetype, filesize
