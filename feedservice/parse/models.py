@@ -348,6 +348,10 @@ class Episode(object):
 
         for urls, mtype, filesize in self.list_files():
 
+            # skip if we've seen this list of URLs already
+            if urls in [f['urls'] for f in files]:
+                break
+
             if not mimetype.check_mimetype(mtype):
                 continue
 
