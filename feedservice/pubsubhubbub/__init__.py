@@ -76,6 +76,7 @@ def subscribe(feedurl, huburl, base_url):
             logging.warn(msg)
             raise SubscriptionError(msg)
     except Exception, e:
+        raise
         msg = 'Could not send subscription to Hub: %s' % repr(e)
         logging.warn(msg)
         raise SubscriptionError(msg)

@@ -72,6 +72,7 @@ INSTALLED_APPS = (
     'feedservice.parse',
     'feedservice.pubsubhubbub',
     'feedservice.urlstore',
+    'feedservice.webservice',
 )
 
 BASE_URL='http://localhost:8080/'
@@ -80,6 +81,8 @@ COUCHDB_DATABASES = (
     ('feedservice.urlstore',     'http://127.0.0.1:5984/feedservice'),
     ('feedservice.pubsubhubbub', 'http://127.0.0.1:5984/feedservice'),
 )
+
+DATABASES = {'default': {'ENGINE': 'django.db.backends.sqlite3'}}
 
 SOUNDCLOUD_CONSUMER_KEY = ''
 

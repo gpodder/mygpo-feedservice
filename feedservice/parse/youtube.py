@@ -20,8 +20,8 @@
 import re
 import urllib
 
-from feedservice.parse.feed import FeedparserFeed, FeedparserEpisode
-from feedservice.urlstore import get_url
+from feedservice.parse.feed import Feedparser, FeedparserEpisodeParser
+from feedservice.urlstore import fetch_url
 
 # See http://en.wikipedia.org/wiki/YouTube#Quality_and_codecs
 # Currently missing: the WebM 480p and 720 formats; 3GP profile
@@ -40,7 +40,7 @@ class YouTubeError(Exception):
     pass
 
 
-class YoutubeFeed(FeedparserFeed):
+class YoutubeParser(Feedparser):
 
 
     re_youtube_feeds = [
@@ -58,8 +58,9 @@ class YoutubeFeed(FeedparserFeed):
 
 
 
-    def __init__(self, url, url_obj):
-        super(YoutubeFeed, self).__init__(url, url_obj)
+    def __init__(self, url, resp):
+        super(YoutubeParser, self).__init__(url, resp)
+
         for reg in self.re_youtube_feeds:
             m = reg.match(url)
             if m:
@@ -80,7 +81,7 @@ class YoutubeFeed(FeedparserFeed):
 
         username = m.group(1)
         api_url = 'http://gdata.youtube.com/feeds/api/users/%s?v=2' % username
-        data = get_url(api_url)[1]
+        data = fetch_url(api_url).read()
         match = re.search('<media:thumbnail url=[\'"]([^\'"]+)[\'"]/>', data)
         if match is not None:
             log('YouTube userpic for %s is: %s', url, match.group(1))
@@ -111,7 +112,12 @@ class YoutubeFeed(FeedparserFeed):
         return ["video"]
 
 
-class YoutubeEpisode(FeedparserEpisode):
+    def get_episodes(self):
+        parser = map(YoutubeEpisodeParser, self.feed.entries)
+        return [p.get_episode() for p in parser]
+
+
+class YoutubeEpisodeParser(FeedparserEpisodeParser):
 
     def list_files(self):
         for link in getattr(self.entry, 'links', []):
@@ -146,7 +152,7 @@ class YoutubeEpisode(FeedparserEpisode):
         if vid is not None:
             url = 'http://www.youtube.com/watch?v=' + vid
 
-            page = get_url(url)[1]
+            page = fetch_url(url).read()
 
             # Try to find the best video format available for this video
             # (http://forum.videohelp.com/topic336882-1800.html#1912972)

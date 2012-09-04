@@ -18,6 +18,7 @@ from feedservice.parse import parse_feeds
 from feedservice.json import json
 from feedservice.parse.text import get_text_processor
 from feedservice.urlstore.cache import URLObjectCache
+from feedservice.webservice.utils import ObjectEncoder
 
 
 class ParseView(View):
@@ -50,8 +51,8 @@ class ParseView(View):
         base_url = request.build_absolute_uri('/')
 
         if urls:
-            podcasts = parse_feeds(urls, mod_since_utc, base_url, process_text,
-                    cache, **parse_args)
+            podcasts = parse_feeds(urls)#, mod_since_utc, base_url, process_text,
+                #cache, **parse_args)
 
             last_mod_utc = datetime.utcnow()
             response = self.send_response(request, podcasts, last_mod_utc, accept)
@@ -77,7 +78,7 @@ class ParseView(View):
             response = HttpResponse()
 
             dense_json = json.dumps(podcasts, sort_keys=True,
-                    indent=None, separators=(',', ':'))
+                    indent=None, separators=(',', ':'), cls=ObjectEncoder)
             response.write(dense_json)
 
             last_mod_time = time.mktime(last_mod_utc.timetuple())
@@ -86,7 +87,7 @@ class ParseView(View):
 
         else:
             content_type = 'text/html'
-            pretty_json = json.dumps(podcasts, sort_keys=True, indent=4)
+            pretty_json = json.dumps(podcasts, sort_keys=True, indent=4, cls=ObjectEncoder)
             pretty_json = cgi.escape(pretty_json)
             response = render(request, 'pretty_response.html', {
                     'response': pretty_json,

@@ -42,7 +42,7 @@ def get_url(url, use_cache=True, headers_only=False):
     return obj
 
 
-def fetch_url(url, cached=None, headers_only=False, add_expires=timedelta()):
+def fetch_url(url):
     """
     Fetches the given URL and stores the resulting object in the Cache
     """
@@ -51,52 +51,22 @@ def fetch_url(url, cached=None, headers_only=False, add_expires=timedelta()):
 
     request = urllib2.Request(url)
 
-    if headers_only:
-        request.get_method = lambda: 'HEAD'
-
     request.add_header('User-Agent', USER_AGENT)
     opener = urllib2.build_opener(collector)
 
-    if getattr(cached, 'last_modified', False):
-        lm_str = utils.formatdate(time.mktime(cached.last_mod_up.timetuple()))
-        request.add_header('If-Modified-Since', lm_str)
-
-    if getattr(cached, 'etag', False):
-        request.add_header('If-None-Match', cached.etag)
-
     try:
-        obj = cached or URLObject(url=url)
-
         r = opener.open(request)
 
-        obj.urls = collector.get_redirects()
-        obj.permanent_redirect = collector.permanent_redirect
+        r.urls = collector.get_redirects()
+        r.permanent_redirect = collector.permanent_redirect
 
-        headers = r.info()
+#        obj.expires = parse_header_date(headers.get('expires', None))
+#        obj.last_mod_up = parse_header_date(headers.get('last-modified', None))
+#        obj.content_type = headers.get('content-type', None)
+#        obj.last_mod_utc = datetime.utcnow()
+#        obj.etag = r.headers.dict.get('etag', None)
 
-        if not headers_only:
-            obj.content = base64.b64encode(r.read())
-        else:
-            obj.content = None
-
-        obj.expires = parse_header_date(headers.get('expires', None))
-        obj.last_mod_up = parse_header_date(headers.get('last-modified', None))
-        obj.content_type = headers.get('content-type', None)
-        obj.last_mod_utc = datetime.utcnow()
-        obj.etag = r.headers.dict.get('etag', None)
-
-        length = headers.get('content-length', None)
-        try:
-            obj.length = int(length)
-        except:
-            pass
-
-        if obj.expires is not None:
-            obj.expires += add_expires
-        elif add_expires:
-            obj.expires = datetime.utcnow() + add_expires
-
-        r.close()
+#        length = headers.get('content-length', None)
 
     except urllib2.HTTPError, e:
         logger.info('HTTP %d' % e.code)
@@ -108,7 +78,7 @@ def fetch_url(url, cached=None, headers_only=False, add_expires=timedelta()):
         else:
             raise
 
-    return obj
+    return r
 
 
 def parse_header_date(date_str):

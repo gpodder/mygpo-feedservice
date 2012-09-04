@@ -30,8 +30,9 @@ import email.Header
 
 from django.conf import settings
 
-from feedservice.parse.models import Feed, Episode
-from feedservice.urlstore import get_url
+from feedservice.parse.models import Feed, Episode, File
+from feedservice.parse.feed import Feedparser, FeedparserEpisodeParser
+from feedservice.urlstore import fetch_url
 from feedservice.parse.mimetype import get_mimetype
 from feedservice.json import json
 
@@ -45,15 +46,11 @@ class SoundcloudUser(object):
         key = ':'.join((self.username, 'avatar_url'))
 
         image = None
-        try:
-            json_url = 'http://api.soundcloud.com/users/%s.json?consumer_key=%s' % (self.username, settings.SOUNDCLOUD_CONSUMER_KEY)
+        json_url = 'http://api.soundcloud.com/users/%s.json?consumer_key=%s' % (self.username, settings.SOUNDCLOUD_CONSUMER_KEY)
 
-            res = get_url(json_url)
-            user_info = json.loads(res.get_content())
-            return user_info.get('avatar_url', None)
-
-        except:
-            return None
+        resp = fetch_url(json_url)
+        user_info = json.loads(resp.read())
+        return user_info.get('avatar_url', None)
 
 
     def get_tracks(self, feed):
@@ -65,8 +62,8 @@ class SoundcloudUser(object):
         json_url = 'http://api.soundcloud.com/users/%(user)s/%(feed)s.json?filter=downloadable&consumer_key=%(consumer_key)s' \
                 % { "user":self.username, "feed":feed, "consumer_key": settings.SOUNDCLOUD_CONSUMER_KEY }
 
-        res = get_url(json_url)
-        tracks = (track for track in json.loads(res.get_content()) \
+        res = fetch_url(json_url)
+        tracks = (track for track in json.loads(res.read()) \
                 if track['downloadable'])
 
         for track in tracks:
@@ -116,7 +113,7 @@ class SoundcloudUser(object):
         metadata via the HTTP header fields.
         """
 
-        res = get_url(url, headers_only=True)
+        res = fetch_url(url, headers_only=True)
 
         return res.length, res.content_type, os.path.basename(os.path.dirname(res.url))
 
@@ -132,7 +129,7 @@ class SoundcloudUser(object):
         return time.mktime([int(x) for x in m.groups()]+[0, 0, -1])
 
 
-class SoundcloudFeed(Feed):
+class SoundcloudParser(Feedparser):
     URL_REGEX = re.compile('http://([a-z]+\.)?soundcloud\.com/([^/]+)$', re.I)
 
     @classmethod
@@ -140,13 +137,12 @@ class SoundcloudFeed(Feed):
         return bool(cls.URL_REGEX.match(url))
 
 
-    def __init__(self, feed_url, res, strip_html=False, **kwargs):
-        self.strip_html = strip_html
+    def __init__(self, feed_url, resp):
         m = self.__class__.URL_REGEX.match(feed_url)
         subdomain, self.username = m.groups()
         self.sc_user = SoundcloudUser(self.username)
 
-        super(SoundcloudFeed, self).__init__(feed_url, res)
+        super(SoundcloudParser, self).__init__(feed_url, resp)
 
 
     def get_title(self):
@@ -164,14 +160,15 @@ class SoundcloudFeed(Feed):
     def get_author(self):
         return self.username
 
-    def get_episode_objects(self):
+    def get_episodes(self):
         tracks = self.sc_user.get_tracks('tracks')
-        make_episode = lambda t: SoundcloudEpisode(t, self.get_author())
-        return map(make_episode, tracks)
+        parsers = [SoundcloudEpisodeParser(t, self.get_author()) for t in tracks]
+        return [p.get_episode() for p in parsers]
 
 
 
-class SoundcloudFavFeed(SoundcloudFeed):
+
+class SoundcloudFavParser(SoundcloudParser):
     URL_REGEX = re.compile('http://([a-z]+\.)?soundcloud\.com/([^/]+)/favorites', re.I)
 
 
@@ -195,11 +192,11 @@ class SoundcloudFavFeed(SoundcloudFeed):
 
 
 
-class SoundcloudEpisode(Episode):
+class SoundcloudEpisodeParser(FeedparserEpisodeParser):
 
 
     def __init__(self, track, author):
-        self.entry = track
+        super(SoundcloudEpisodeParser, self).__init__(track)
         self.author = author
 
 
@@ -231,16 +228,13 @@ class SoundcloudEpisode(Episode):
         return None
 
 
-    def list_files(self):
+    def get_files(self):
         url = self.entry.get('url', None)
         mimetype = get_mimetype(self.entry.get('mimetype', None), url)
         filesize = self.entry.get('length', None)
 
-        yield ([url], mimetype, filesize)
+        yield File([url], mimetype, filesize)
 
 
     def get_timestamp(self):
-        try:
-            return int(self.entry.get('pubDate', None))
-        except:
-            return None
+        return int(self.entry.get('pubDate', None))

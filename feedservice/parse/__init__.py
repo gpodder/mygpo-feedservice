@@ -15,16 +15,16 @@ class UnchangedException(Exception):
     pass
 
 
-FEED_CLASSES = (
-        youtube.YoutubeFeed,
-        soundcloud.SoundcloudFeed,
-        soundcloud.SoundcloudFavFeed,
-        fm4.FM4OnDemandPlaylist,
-        feed.FeedparserFeed, # fallback, has to be the last entry
+PARSER_CLASSES = (
+        youtube.YoutubeParser,
+        soundcloud.SoundcloudParser,
+        soundcloud.SoundcloudFavParser,
+        fm4.FM4OnDemandPlaylistParser,
+        feed.Feedparser, # fallback, has to be the last entry
     )
 
 
-def parse_feeds(feed_urls, mod_since_utc=None, base_url=None,
+def parse_feeds(feed_urls, mod_since_utc=None,
         process_text=lambda _: _, cache=None, **kwargs):
     """ Parses the specified feeds and returns their JSON representations
 
@@ -36,13 +36,13 @@ def parse_feeds(feed_urls, mod_since_utc=None, base_url=None,
 
     for url in feed_urls:
 
-        feed = parse_feed(url, mod_since_utc, base_url, process_text, **kwargs)
+        feed = parse_feed(url)#, mod_since_utc, base_url, process_text, **kwargs)
 
         if not feed:
             continue
 
-        visited  = feed['urls']
-        new_loc  = feed.get('new_location', None)
+        visited  = feed.urls#['urls']
+        new_loc  = feed.new_location
 
         # we follow RSS-redirects automatically
         if new_loc and new_loc not in (list(visited_urls) + feed_urls):
@@ -55,10 +55,10 @@ def parse_feeds(feed_urls, mod_since_utc=None, base_url=None,
     return result
 
 
-def get_feed_cls(url):
+def get_parser_cls(url):
     feed_cls = None
 
-    for cls in FEED_CLASSES:
+    for cls in PARSER_CLASSES:
         if cls.handles_url(url):
             return cls
 
@@ -75,15 +75,17 @@ def parse_feed(feed_url, mod_since_utc=None, base_url=None,
     cache: cache or None to disable caching
     """
 
-    feed_cls = get_feed_cls(feed_url)
+    parser_cls = get_parser_cls(feed_url)
 
     try:
-        res = urlstore.get_url(feed_url, cache)
+        resp = urlstore.fetch_url(feed_url)
 
-        if not res.changed_since(mod_since_utc):
-            raise UnchangedException
+        #if not res.changed_since(mod_since_utc):
+        #    raise UnchangedException
 
     except Exception as e:
+
+        raise
 
         # create a dummy feed to hold the error message and the feed URL
         feed = Feed(feed_url, None)
@@ -96,9 +98,6 @@ def parse_feed(feed_url, mod_since_utc=None, base_url=None,
     except UnchangedException as e:
         return None
 
-    feed = feed_cls(res.url, res)
+    parser = parser_cls(feed_url, resp)
 
-    if base_url:
-        feed.subscribe_at_hub(base_url)
-
-    return feed.to_dict(process_text, **kwargs)
+    return parser.get_feed()

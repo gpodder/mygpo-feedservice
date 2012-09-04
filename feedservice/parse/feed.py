@@ -1,31 +1,26 @@
 # -*- coding: utf-8 -*-
 #
 
-import re
-import logging
 import time
 
 import feedparser
-import Image
-import StringIO
 
-from feedservice.parse.models import Feed, Episode
+from feedservice.parse.models import Feed, Episode, File
 
-from feedservice import urlstore
-from feedservice.utils import parse_time, longest_substr
-from feedservice.parse.mimetype import get_mimetype, check_mimetype
-
+from feedservice.utils import parse_time
+from feedservice.parse.mimetype import get_mimetype
+from feedservice.parse import mimetype
+from feedservice.parse.core import Parser
 
 
-class FeedparserFeed(Feed):
+
+class Feedparser(Parser):
     """ A parsed Feed """
 
-    def __init__(self, url, url_obj):
-
-        super(FeedparserFeed, self).__init__(url, url_obj)
-
-        self.episodes = None
-        self.feed = feedparser.parse(url_obj.get_content())
+    def __init__(self, url, resp):
+        super(Feedparser, self).__init__(url, resp)
+        self.url = url
+        self.feed = feedparser.parse(url)
 
 
     @classmethod
@@ -34,9 +29,35 @@ class FeedparserFeed(Feed):
         return True
 
 
+    def get_feed(self):
+        feed = Feed()
+        feed.title = self.get_title()
+        feed.link = self.get_link()
+        feed.description = self.get_description()
+        feed.author = self.get_author()
+        feed.language = self.get_language()
+        feed.urls = self.get_urls()
+        feed.new_location = self.get_new_location()
+        feed.logo = self.get_logo_url()
+        feed.tags = self.get_feed_tags()
+        feed.hub = self.get_hub_url()
+        feed.http_last_modified = self.get_last_modified()
+        feed.http_etag = self.get_etag()
+
+        #feed.content_types = self.get_podcast_types()
+        #feed.logo_data = self.get_logo_inline()
+
+        feed.episodes = self.get_episodes()
+
+        return feed
+
+
     def get_title(self):
         return self.feed.feed.get('title', None)
 
+
+    def get_urls(self):
+        return [self.url]
 
     def get_link(self):
         return self.feed.feed.get('link', None)
@@ -47,15 +68,15 @@ class FeedparserFeed(Feed):
 
     def get_author(self):
         return self.feed.feed.get('author',
-                self.feed.feed.get('itunes_author', None))
+               self.feed.feed.get('itunes_author', None))
 
     def get_language(self):
         return self.feed.feed.get('language', None)
 
 
     def get_new_location(self):
-        return super(FeedparserFeed, self).get_new_location() or \
-            self.feed.feed.get('newlocation', None)
+            return super(Feedparser, self).get_new_location() or \
+                self.feed.feed.get('newlocation', None)
 
 
     def get_logo_url(self):
@@ -95,32 +116,36 @@ class FeedparserFeed(Feed):
         return None
 
 
-    @property
-    def episode_cls(self):
-       return FeedparserEpisode
+
+    def get_episodes(self):
+        parser = map(FeedparserEpisodeParser, self.feed.entries)
+        return [p.get_episode() for p in parser]
 
 
-    def get_episode_objects(self):
-        if self.episodes is None:
-            self.episodes = map(self.episode_cls, self.feed.entries)
-            self.episodes = filter(None, self.episodes)
 
-        return self.episodes
-
-
-    def get_last_modified(self):
-        try:
-            return int(time.mktime(self.last_mod_up.timetuple()))
-        except:
-            return None
-
-
-class FeedparserEpisode(Episode):
-    """ A parsed Episode """
+class FeedparserEpisodeParser(object):
+    """ Parses episodes from a feedparser feed """
 
 
     def __init__(self, entry):
         self.entry = entry
+
+
+
+    def get_episode(self):
+        episode = Episode()
+        episode.guide = self.get_guid()
+        episode.title = self.get_title()
+        episode.description = self.get_description()
+        episode.link = self.get_link()
+        episode.author = self.get_author()
+        episode.duration = self.get_duration()
+        episode.language = self.get_language()
+        episode.files = list(self.get_files())
+        episode.released = self.get_timestamp()
+        #episode.number = self.get_episode_number()
+        #episode.short_title = self.get_short_title()
+        return episode
 
 
     def get_guid(self):
@@ -196,7 +221,25 @@ class FeedparserEpisode(Episode):
 
 
     def get_timestamp(self):
-        try:
-            return int(time.mktime(self.entry.updated_parsed))
-        except:
-            return None
+        return int(time.mktime(self.entry.updated_parsed))
+
+
+
+    def get_files(self):
+        """Get the download / episode URL of a feedparser entry"""
+
+        files = []
+
+        for urls, mtype, filesize in self.list_files():
+
+            # skip if we've seen this list of URLs already
+            if urls in [f.urls for f in files]:
+                break
+
+            if not mimetype.check_mimetype(mtype):
+                continue
+
+            f = File(urls, mtype, filesize)
+            files.append(f)
+
+        return files

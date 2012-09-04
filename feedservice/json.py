@@ -10,7 +10,7 @@ try:
     import simplejson as json
     JSONDecodeError = json.JSONDecodeError
 
-except:
+except ImportError:
     print >> sys.stderr, 'simplejson not found'
 
     # Otherwise use json from the stdlib

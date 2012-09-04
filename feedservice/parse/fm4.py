@@ -40,10 +40,11 @@ from xml.dom import minidom
 
 from feedservice.urlstore import get_url
 from feedservice.parse.models import Feed, Episode
+from feedservice.parse.feed import Feedparser, FeedparserEpisodeParser
 from feedservice.parse.mimetype import get_mimetype
 
 
-class FM4OnDemandPlaylist(Feed):
+class FM4OnDemandPlaylistParser(Feedparser):
 
     URL_REGEX = re.compile('http://onapp1\.orf\.at/webcam/fm4/fod/([^/]+)\.xspf$')
 
@@ -83,15 +84,15 @@ class FM4OnDemandPlaylist(Feed):
             return u''.join(self.get_text_contents(c) for c in node.childNodes)
 
 
-    def __init__(self, feed_url, url_obj):
+    def __init__(self, feed_url, resp):
 
         self.category = self.get_category(feed_url)
         # TODO: Use proper caching of contents with support for
         #       conditional GETs (If-Modified-Since, ETag, ...)
-        self.data = minidom.parseString(url_obj.get_content())
+        self.data = minidom.parseString(resp.read())
         self.playlist = self.data.getElementsByTagName('playlist')[0]
 
-        super(FM4OnDemandPlaylist, self).__init__(feed_url, url_obj)
+        super(FM4OnDemandPlaylistParser, self).__init__(feed_url, resp)
 
 
     def get_category(cls, url):
@@ -122,19 +123,20 @@ class FM4OnDemandPlaylist(Feed):
                 (None, None, None, 'XSPF playlist'))[3]
 
 
-    def get_episode_objects(self):
+    def get_episodes(self):
         tracks = self.playlist.getElementsByTagName('track')
-        episodes = map(FM4Episode, tracks)
+        parsers = map(FM4EpisodeParser, tracks)
+        episodes = [p.get_episode() for p in parsers]
         return episodes
 
 
 
-class FM4Episode(Episode):
+class FM4EpisodeParser(FeedparserEpisodeParser):
 
     def __init__(self, track):
         self.title = self.get_text_contents(track.getElementsByTagName('title'))
         self.url = self.get_text_contents(track.getElementsByTagName('location'))
-        super(FM4Episode, self).__init__()
+        super(FM4EpisodeParser, self).__init__({})
 
 
     def get_text_contents(self, node):
