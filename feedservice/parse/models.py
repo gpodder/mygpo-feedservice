@@ -40,10 +40,9 @@ class Feed(ParsedObject):
         return None
 
 
-    # TODO: call somewhere
     def get_common_title(self, episodes):
         # We take all non-empty titles
-        titles = filter(None, (e.get_title() for e in episodes))
+        titles = filter(None, (e.title for e in episodes))
 
         # get the longest common substring
         common_title = longest_substr(titles)
@@ -90,47 +89,16 @@ class Episode(ParsedObject):
     """ A parsed Episode """
 
 
-    def get_files(self):
-        """Get the download / episode URL of a feedparser entry"""
-
-        files = []
-
-        for urls, mtype, filesize in self.list_files():
-
-            # skip if we've seen this list of URLs already
-            if urls in [f['urls'] for f in files]:
-                break
-
-            if not mimetype.check_mimetype(mtype):
-                continue
-
-            f = dict(urls=urls)
-            if mtype:
-                f['mimetype'] = mtype
-            if filesize:
-                f['filesize'] = filesize
-
-#           TODO: optional
-#           bitlove_torrent = get_bitlove_torrent(urls)
-#           if bitlove_torrent:
-#               f['bitlove'] = bitlove_torrent
-
-            files.append(f)
-
-        return files
-
-
-    def get_episode_number(self):
+    @property
+    def number(self):
         """
         Returns the first number in the non-repeating part of the episode's title
         """
 
-        title = self.get_title()
-
-        if None in (title, self.common_title):
+        if None in (self.title, self._common_title):
             return None
 
-        title = title.replace(self.common_title, '').strip()
+        title = self.title.replace(self._common_title, '').strip()
         match = re.search(r'^\W*(\d+)', title)
         if not match:
             return None
@@ -138,18 +106,17 @@ class Episode(ParsedObject):
         return int(match.group(1))
 
 
-    def get_short_title(self):
+    @property
+    def short_title(self):
         """
         Returns the non-repeating part of the episode's title
         If an episode number is found, it is removed
         """
 
-        title = self.get_title()
-
-        if None in (title, self.common_title):
+        if None in (self.title, self._common_title):
             return None
 
-        title = title.replace(self.common_title, '').strip()
+        title = self.title.replace(self._common_title, '').strip()
         title = re.sub(r'^[\W\d]+', '', title)
         return title
 

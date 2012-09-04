@@ -49,6 +49,10 @@ class Feedparser(Parser):
 
         feed.episodes = self.get_episodes()
 
+        feed.common_title = feed.get_common_title(feed.episodes)
+        for episode in feed.episodes:
+            episode._common_title = feed.common_title
+
         return feed
 
 
@@ -134,7 +138,7 @@ class FeedparserEpisodeParser(object):
 
     def get_episode(self):
         episode = Episode()
-        episode.guide = self.get_guid()
+        episode.guid = self.get_guid()
         episode.title = self.get_title()
         episode.description = self.get_description()
         episode.link = self.get_link()
@@ -143,8 +147,6 @@ class FeedparserEpisodeParser(object):
         episode.language = self.get_language()
         episode.files = list(self.get_files())
         episode.released = self.get_timestamp()
-        #episode.number = self.get_episode_number()
-        #episode.short_title = self.get_short_title()
         return episode
 
 
