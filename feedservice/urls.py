@@ -5,7 +5,7 @@ from django.views.generic.simple import direct_to_template
 from django.views.generic import TemplateView
 from django.conf import settings
 
-from feedservice.parse.views import ParseView
+from feedservice.webservice.views import ParseView
 from feedservice.pubsubhubbub.views import SubscribeView
 
 
