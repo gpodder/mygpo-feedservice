@@ -84,7 +84,7 @@ class FM4OnDemandPlaylistParser(Feedparser):
             return u''.join(self.get_text_contents(c) for c in node.childNodes)
 
 
-    def __init__(self, feed_url, resp):
+    def __init__(self, feed_url, resp, text_processor=None):
 
         self.category = self.get_category(feed_url)
         # TODO: Use proper caching of contents with support for
@@ -92,7 +92,8 @@ class FM4OnDemandPlaylistParser(Feedparser):
         self.data = minidom.parseString(resp.read())
         self.playlist = self.data.getElementsByTagName('playlist')[0]
 
-        super(FM4OnDemandPlaylistParser, self).__init__(feed_url, resp)
+        super(FM4OnDemandPlaylistParser, self).__init__(feed_url, resp,
+                text_processor=text_processor)
 
 
     def get_category(cls, url):
@@ -125,7 +126,7 @@ class FM4OnDemandPlaylistParser(Feedparser):
 
     def get_episodes(self):
         tracks = self.playlist.getElementsByTagName('track')
-        parsers = map(FM4EpisodeParser, tracks)
+        parsers = [FM4EpisodeParser(t, text_processor=self.text_processor) for t in tracks]
         episodes = [p.get_episode() for p in parsers]
         return episodes
 
@@ -133,10 +134,11 @@ class FM4OnDemandPlaylistParser(Feedparser):
 
 class FM4EpisodeParser(FeedparserEpisodeParser):
 
-    def __init__(self, track):
+    def __init__(self, track, text_processor=None):
         self.title = self.get_text_contents(track.getElementsByTagName('title'))
         self.url = self.get_text_contents(track.getElementsByTagName('location'))
-        super(FM4EpisodeParser, self).__init__({})
+        super(FM4EpisodeParser, self).__init__({},
+                text_processor=text_processor)
 
 
     def get_text_contents(self, node):
@@ -165,4 +167,4 @@ class FM4EpisodeParser(FeedparserEpisodeParser):
 
 
     def get_timestamp(self):
-        return None
+        return 0

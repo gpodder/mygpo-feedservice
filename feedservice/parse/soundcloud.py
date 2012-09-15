@@ -137,12 +137,13 @@ class SoundcloudParser(Feedparser):
         return bool(cls.URL_REGEX.match(url))
 
 
-    def __init__(self, feed_url, resp):
+    def __init__(self, feed_url, resp, text_processor=None):
         m = self.__class__.URL_REGEX.match(feed_url)
         subdomain, self.username = m.groups()
         self.sc_user = SoundcloudUser(self.username)
 
-        super(SoundcloudParser, self).__init__(feed_url, resp)
+        super(SoundcloudParser, self).__init__(feed_url, resp,
+                text_processor=text_processor)
 
 
     def get_title(self):
@@ -162,7 +163,8 @@ class SoundcloudParser(Feedparser):
 
     def get_episodes(self):
         tracks = self.sc_user.get_tracks('tracks')
-        parsers = [SoundcloudEpisodeParser(t, self.get_author()) for t in tracks]
+        parsers = [SoundcloudEpisodeParser(t, self.get_author(),
+                text_processor=self.text_processor) for t in tracks]
         return [p.get_episode() for p in parsers]
 
 
@@ -195,8 +197,9 @@ class SoundcloudFavParser(SoundcloudParser):
 class SoundcloudEpisodeParser(FeedparserEpisodeParser):
 
 
-    def __init__(self, track, author):
-        super(SoundcloudEpisodeParser, self).__init__(track)
+    def __init__(self, track, author, text_processor=None):
+        super(SoundcloudEpisodeParser, self).__init__(track,
+                text_processor=text_processor)
         self.author = author
 
 

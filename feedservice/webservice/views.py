@@ -16,9 +16,9 @@ from django.views.generic.base import View
 from feedservice.httputils import select_matching_option
 from feedservice.parse import parse_feeds
 from feedservice.json import json
-from feedservice.parse.text import get_text_processor
 from feedservice.urlstore.cache import URLObjectCache
 from feedservice.webservice.utils import ObjectEncoder
+from feedservice.parse.text import StripHtmlTags, ConvertMarkdown
 
 
 class ParseView(View):
@@ -38,7 +38,7 @@ class ParseView(View):
         if int(request.GET.get('strip_html', 0)):
             process_text = get_text_processor('strip_html')
 
-        process_text  = get_text_processor(request.GET.get('process_text', ''))
+        text_processor = get_text_processor(request.GET.get('process_text', ''))
 
         if request.GET.get('use_cache', default=1):
             cache = URLObjectCache()
@@ -51,7 +51,7 @@ class ParseView(View):
         base_url = request.build_absolute_uri('/')
 
         if urls:
-            podcasts = parse_feeds(urls)#, mod_since_utc, base_url, process_text,
+            podcasts = parse_feeds(urls, text_processor=text_processor )#, mod_since_utc, base_url,
                 #cache, **parse_args)
 
             last_mod_utc = datetime.utcnow()
@@ -98,3 +98,10 @@ class ParseView(View):
         response['Vary'] = 'Accept, User-Agent, Accept-Encoding'
 
         return response
+
+
+def get_text_processor(name):
+    if name == 'strip_html':
+        return StripHtmlTags()
+    elif name == 'markdown':
+        return ConvertMarkdown()

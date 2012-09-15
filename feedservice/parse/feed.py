@@ -6,7 +6,6 @@ import time
 import feedparser
 
 from feedservice.parse.models import Feed, Episode, File
-
 from feedservice.utils import parse_time
 from feedservice.parse.mimetype import get_mimetype
 from feedservice.parse import mimetype
@@ -17,10 +16,11 @@ from feedservice.parse.core import Parser
 class Feedparser(Parser):
     """ A parsed Feed """
 
-    def __init__(self, url, resp):
+    def __init__(self, url, resp, text_processor=None):
         super(Feedparser, self).__init__(url, resp)
         self.url = url
         self.feed = feedparser.parse(url)
+        self.text_processor = text_processor
 
 
     @classmethod
@@ -30,7 +30,7 @@ class Feedparser(Parser):
 
 
     def get_feed(self):
-        feed = Feed()
+        feed = Feed(text_processor=self.text_processor)
         feed.title = self.get_title()
         feed.link = self.get_link()
         feed.description = self.get_description()
@@ -44,14 +44,9 @@ class Feedparser(Parser):
         feed.http_last_modified = self.get_last_modified()
         feed.http_etag = self.get_etag()
 
-        #feed.content_types = self.get_podcast_types()
         #feed.logo_data = self.get_logo_inline()
 
-        feed.episodes = self.get_episodes()
-
-        feed.common_title = feed.get_common_title(feed.episodes)
-        for episode in feed.episodes:
-            episode._common_title = feed.common_title
+        feed.set_episodes(self.get_episodes())
 
         return feed
 
@@ -122,7 +117,7 @@ class Feedparser(Parser):
 
 
     def get_episodes(self):
-        parser = map(FeedparserEpisodeParser, self.feed.entries)
+        parser = [FeedparserEpisodeParser(e, self.text_processor) for e in self.feed.entries]
         return [p.get_episode() for p in parser]
 
 
@@ -131,21 +126,23 @@ class FeedparserEpisodeParser(object):
     """ Parses episodes from a feedparser feed """
 
 
-    def __init__(self, entry):
+    def __init__(self, entry, text_processor=None):
         self.entry = entry
+        self.text_processor = text_processor
 
 
 
     def get_episode(self):
-        episode = Episode()
+        episode = Episode(self.text_processor)
         episode.guid = self.get_guid()
         episode.title = self.get_title()
         episode.description = self.get_description()
+        episode.content = self.get_content()
         episode.link = self.get_link()
         episode.author = self.get_author()
         episode.duration = self.get_duration()
         episode.language = self.get_language()
-        episode.files = list(self.get_files())
+        episode.set_files(list(self.get_files()))
         episode.released = self.get_timestamp()
         return episode
 
@@ -207,7 +204,12 @@ class FeedparserEpisodeParser(object):
             if value:
                 return value
 
-        return None
+
+    def get_content(self):
+        for content in getattr(self.entry, 'content', []):
+            if content.value:
+                return content.value
+
 
 
     def get_duration(self):

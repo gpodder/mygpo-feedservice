@@ -58,8 +58,9 @@ class YoutubeParser(Feedparser):
 
 
 
-    def __init__(self, url, resp):
-        super(YoutubeParser, self).__init__(url, resp)
+    def __init__(self, url, resp, text_processor=None):
+        super(YoutubeParser, self).__init__(url, resp,
+                text_processor=text_processor)
 
         for reg in self.re_youtube_feeds:
             m = reg.match(url)
@@ -113,11 +114,16 @@ class YoutubeParser(Feedparser):
 
 
     def get_episodes(self):
-        parser = map(YoutubeEpisodeParser, self.feed.entries)
+        parser = [YoutubeEpisodeParser(e, text_processor=self.text_processor)
+            for e in self.feed.entries]
         return [p.get_episode() for p in parser]
 
 
 class YoutubeEpisodeParser(FeedparserEpisodeParser):
+
+    def __init__(self, *args, **kwargs):
+        super(YoutubeEpisodeParser, self).__init__(*args, **kwargs)
+
 
     def list_files(self):
         for link in getattr(self.entry, 'links', []):
