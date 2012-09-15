@@ -24,7 +24,7 @@ from feedservice.parse.feed import Feedparser, FeedparserEpisodeParser
 from feedservice.urlstore import fetch_url
 
 # See http://en.wikipedia.org/wiki/YouTube#Quality_and_codecs
-# Currently missing: the WebM 480p and 720 formats; 3GP profile
+# Currently missing: 3GP profile
 supported_formats = [
     (37, '37/1920x1080/9/0/115', '1920x1080 (HD)'),
     (22, '22/1280x720/9/0/115', '1280x720 (HD)'),
@@ -33,6 +33,13 @@ supported_formats = [
     (18, '18/640x360/9/0/115', '640x360 (iPod)'),
     (18, '18/480x360/9/0/115', '480x360 (iPod)'),
     (5, '5/320x240/7/0/0', '320x240 (FLV)'),
+
+    # WebM formats have lower priority, because "most" players are still less
+    # compatible with WebM than their equivalent MP4 formats above (bug 1336)
+    # If you really want WebM files, set the preferred fmt_id to any of these:
+    (45, '45/1280x720/99/0/0', 'WebM 720p'),
+    (44, '44/854x480/99/0/0', 'WebM 480p'),
+    (43, '43/640x360/99/0/0', 'WebM 360p'),
 ]
 
 
@@ -85,7 +92,6 @@ class YoutubeParser(Feedparser):
         data = fetch_url(api_url).read()
         match = re.search('<media:thumbnail url=[\'"]([^\'"]+)[\'"]/>', data)
         if match is not None:
-            log('YouTube userpic for %s is: %s', url, match.group(1))
             return match.group(1)
 
 
@@ -95,7 +101,6 @@ class YoutubeParser(Feedparser):
 
         if m is not None:
             next = 'http://www.youtube.com/rss/user/'+ m.group(1) +'/videos.rss'
-            log('YouTube link resolved: %s => %s', self.url, next)
             return next
 
         r = re.compile('http://(?:[a-z]+\.)?youtube\.com/profile?user=([a-z0-9]+)', re.IGNORECASE)
@@ -103,7 +108,6 @@ class YoutubeParser(Feedparser):
 
         if m is not None:
             next = 'http://www.youtube.com/rss/user/'+ m.group(1) +'/videos.rss'
-            log('YouTube link resolved: %s => %s', self.url, next)
             return next
 
         return self.url
@@ -140,6 +144,9 @@ class YoutubeEpisodeParser(FeedparserEpisodeParser):
     def is_video_link(self, url):
         return (self.get_youtube_id(url) is not None)
 
+    def is_youtube_guid(guid):
+        return guid.startswith('tag:youtube.com,2008:video:')
+
 
     def get_youtube_id(self, url):
         r = re.compile('http://(?:[a-z]+\.)?youtube\.com/v/(.*)\.swf', re.IGNORECASE).match(url)
@@ -150,15 +157,30 @@ class YoutubeEpisodeParser(FeedparserEpisodeParser):
         if r is not None:
             return r.group(1)
 
+        r = re.compile('http://(?:[a-z]+\.)?youtube\.com/v/(.*)[?]', re.IGNORECASE).match(url)
+        if r is not None:
+            return r.group(1)
+
         return None
 
 
-    def get_real_download_url(self, url, preferred_fmt_id=18):
+    def get_real_download_url(self, url, preferred_fmt_id=None):
+        # Default fmt_id when none preferred
+        if preferred_fmt_id is None:
+            preferred_fmt_id = 18
+
+
         vid = self.get_youtube_id(url)
         if vid is not None:
+            page = None
             url = 'http://www.youtube.com/watch?v=' + vid
 
-            page = fetch_url(url).read()
+            while page is None:
+                req = fetch_url(url)
+                if 'location' in req.msg:
+                    url = req.msg['location']
+                else:
+                    page = req.read()
 
             # Try to find the best video format available for this video
             # (http://forum.videohelp.com/topic336882-1800.html#1912972)
@@ -181,7 +203,7 @@ class YoutubeEpisodeParser(FeedparserEpisodeParser):
             formats_available = set(fmt_id for fmt_id, url in fmt_id_url_map)
             fmt_id_url_map = dict(fmt_id_url_map)
 
-            # use fmt_id 18 (seems to be always available)
+            # As a fallback, use fmt_id 18 (seems to be always available)
             fmt_id = 18
 
             # This will be set to True if the search below has already "seen"
