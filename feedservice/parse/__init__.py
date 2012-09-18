@@ -7,7 +7,7 @@ import urllib2
 
 from feedservice.parse.models import Feed
 from feedservice import urlstore
-from feedservice.parse import feed, youtube, soundcloud, fm4
+from feedservice.parse import feed, youtube, soundcloud, fm4, vimeo
 
 
 logger = logging.getLogger(__name__)
@@ -18,6 +18,7 @@ class UnchangedException(Exception):
 
 PARSER_CLASSES = (
         youtube.YoutubeParser,
+        vimeo.VimeoParser,
         soundcloud.SoundcloudParser,
         soundcloud.SoundcloudFavParser,
         fm4.FM4OnDemandPlaylistParser,

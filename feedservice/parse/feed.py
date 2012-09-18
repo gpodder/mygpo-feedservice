@@ -240,7 +240,7 @@ class FeedparserEpisodeParser(object):
             if urls in [f.urls for f in files]:
                 break
 
-            if not mimetype.check_mimetype(mtype):
+            if not mimetype.get_type(mtype):
                 continue
 
             f = File(urls, mtype, filesize)
