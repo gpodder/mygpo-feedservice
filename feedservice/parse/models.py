@@ -7,6 +7,10 @@ from feedservice.utils import flatten, longest_substr
 from feedservice.parse import mimetype
 
 
+class ParserException(Exception):
+    pass
+
+
 class ParsedObject(object):
 
     def __init__(self, text_processor=None):

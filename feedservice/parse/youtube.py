@@ -20,7 +20,10 @@
 import re
 import urllib
 
+from urlparse import parse_qs
+
 from feedservice.parse.feed import Feedparser, FeedparserEpisodeParser
+from feedservice.parse.models import ParserException
 from feedservice.urlstore import fetch_url
 
 # See http://en.wikipedia.org/wiki/YouTube#Quality_and_codecs
@@ -43,7 +46,7 @@ supported_formats = [
 ]
 
 
-class YouTubeError(Exception):
+class YouTubeError(ParserException):
     pass
 
 
@@ -55,7 +58,7 @@ class YoutubeParser(Feedparser):
         re.compile(r'^https?://(www\.)?youtube\.com/rss/user/(?P<username>[^/]+)/videos\.rss'),
         ]
 
-    re_cover = re.compile('http://www\.youtube\.com/rss/user/([^/]+)/videos\.rss', \
+    re_cover = re.compile('https?://www\.youtube\.com/rss/user/([^/]+)/videos\.rss', \
                 re.IGNORECASE)
 
 
@@ -149,15 +152,15 @@ class YoutubeEpisodeParser(FeedparserEpisodeParser):
 
 
     def get_youtube_id(self, url):
-        r = re.compile('http://(?:[a-z]+\.)?youtube\.com/v/(.*)\.swf', re.IGNORECASE).match(url)
+        r = re.compile('https?://(?:[a-z]+\.)?youtube\.com/v/(.*)\.swf', re.IGNORECASE).match(url)
         if r is not None:
             return r.group(1)
 
-        r = re.compile('http://(?:[a-z]+\.)?youtube\.com/watch\?v=([^&]*)', re.IGNORECASE).match(url)
+        r = re.compile('https?://(?:[a-z]+\.)?youtube\.com/watch\?v=([^&]*)', re.IGNORECASE).match(url)
         if r is not None:
             return r.group(1)
 
-        r = re.compile('http://(?:[a-z]+\.)?youtube\.com/v/(.*)[?]', re.IGNORECASE).match(url)
+        r = re.compile('https?://(?:[a-z]+\.)?youtube\.com/v/(.*)[?]', re.IGNORECASE).match(url)
         if r is not None:
             return r.group(1)
 
@@ -173,7 +176,7 @@ class YoutubeEpisodeParser(FeedparserEpisodeParser):
         vid = self.get_youtube_id(url)
         if vid is not None:
             page = None
-            url = 'http://www.youtube.com/watch?v=' + vid
+            url = 'http://www.youtube.com/get_video_info?&el=detailpage&video_id=' + vid
 
             while page is None:
                 req = fetch_url(url)
@@ -185,13 +188,18 @@ class YoutubeEpisodeParser(FeedparserEpisodeParser):
             # Try to find the best video format available for this video
             # (http://forum.videohelp.com/topic336882-1800.html#1912972)
             def find_urls(page):
-                r4 = re.search('.*"url_encoded_fmt_stream_map"\:\s+"([^"]+)".*', page)
+                r4 = re.search('.*&url_encoded_fmt_stream_map=([^&]+)&.*', page)
                 if r4 is not None:
-                    fmt_url_map = r4.group(1)
+                    fmt_url_map = urllib.unquote(r4.group(1))
                     for fmt_url_encoded in fmt_url_map.split(','):
-                        video_info = dict(map(urllib.unquote, x.split('=', 1))
-                                for x in fmt_url_encoded.split('\\u0026'))
-                        yield int(video_info['itag']), video_info['url']
+                        video_info = parse_qs(fmt_url_encoded)
+                        yield int(video_info['itag'][0]), video_info['url'][0] + "&signature=" + video_info['sig'][0]
+
+                else:
+                    error_info = parse_qs(page)
+                    print error_info.keys()
+                    error_message = error_info['reason'][0] if 'reason' in error_info else ''
+                    raise YouTubeError('Cannot download video: %s' % error_message)
 
             fmt_id_url_map = sorted(find_urls(page), reverse=True)
             # Default to the highest fmt_id if we don't find a match below
