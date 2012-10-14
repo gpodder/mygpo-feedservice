@@ -6,11 +6,14 @@ import time
 import feedparser
 
 from feedservice.parse.models import Feed, Episode, File
-from feedservice.utils import parse_time
+from feedservice.utils import parse_time, url_fix
 from feedservice.parse.mimetype import get_mimetype
 from feedservice.parse import mimetype
 from feedservice.parse.core import Parser
 
+
+class FeedparserError(Exception):
+    pass
 
 
 class Feedparser(Parser):
@@ -19,7 +22,12 @@ class Feedparser(Parser):
     def __init__(self, url, resp, text_processor=None):
         super(Feedparser, self).__init__(url, resp)
         self.url = url
-        self.feed = feedparser.parse(url)
+
+        try:
+            self.feed = feedparser.parse(url)
+        except UnicodeEncodeError as e:
+            raise FeedparserError(e)
+
         self.text_processor = text_processor
 
 
@@ -84,7 +92,7 @@ class Feedparser(Parser):
             for key in ('href', 'url'):
                 cover_art = getattr(image, key, None)
                 if cover_art:
-                    return cover_art
+                    return url_fix(cover_art)
 
         return None
 
@@ -225,7 +233,15 @@ class FeedparserEpisodeParser(object):
 
 
     def get_timestamp(self):
-        return int(time.mktime(self.entry.updated_parsed))
+        if not getattr(self.entry, 'updated_parsed', False):
+            return None
+
+        try:
+            return int(time.mktime(self.entry.updated_parsed))
+
+        except OverflowError:
+            # dates before 1970 cause OverflowError
+            return None
 
 
 
