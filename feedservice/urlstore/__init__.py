@@ -57,6 +57,10 @@ def fetch_url(url):
     try:
         r = opener.open(request)
 
+        if isinstance(r, bool):
+            # TODO: we do we get a bool here?!
+            return
+
         r.urls = collector.get_redirects()
         r.permanent_redirect = collector.permanent_redirect
 
@@ -74,7 +78,7 @@ def fetch_url(url):
         if e.code == 304:
             obj = cached
         elif e.code == 403:
-            return URLObject(url=url)
+            return None
         else:
             raise
 
