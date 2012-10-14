@@ -55,6 +55,15 @@ def get_type(mimetype):
 def get_mimetype(mimetype, url):
     """Returns the mimetype; if None is given it tries to guess it"""
 
+    TORRENT_EXT='.torrent'
+
+    # handle torrent files
+    if url[-len(TORRENT_EXT):] == TORRENT_EXT:
+        # by removing the extension
+        url = url[:len(url)-len(TORRENT_EXT)]
+        # and resetting the mimetype, so it is guessed below
+        mimetype = None
+
     if not mimetype:
         mimetype, _encoding = mimetypes.guess_type(url)
 
