@@ -175,7 +175,7 @@ class SoundcloudFavParser(SoundcloudParser):
 
 
     def __init__(self, *args, **kwargs):
-        super(SoundcloudFavFeed,self).__init__(*args, **kwargs)
+        super(SoundcloudFavParser,self).__init__(*args, **kwargs)
 
 
     @classmethod
