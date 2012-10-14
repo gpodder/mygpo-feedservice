@@ -8,7 +8,7 @@ import sys
 try:
     # If SimpleJSON is installed separately, it might be a recent version
     import simplejson as json
-    JSONDecodeError = json.JSONDecodeError
+    JSONDecodeError = ValueError
 
 except ImportError:
     print >> sys.stderr, 'simplejson not found'
