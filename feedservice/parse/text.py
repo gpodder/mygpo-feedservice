@@ -45,6 +45,11 @@ class StripHtmlTags(object):
 class ConvertMarkdown(object):
 
     def process(self, html):
-        import html2text
-        text = html2text.html2text(html)
-        return text.strip()
+        import html2text, HTMLParser
+
+        try:
+            text = html2text.html2text(html)
+            return text.strip()
+
+        except HTMLParser.HTMLParseError:
+            return ''

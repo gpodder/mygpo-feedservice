@@ -13,6 +13,9 @@ class ParserException(Exception):
 
 class ParsedObject(object):
 
+    _UNPROCESSED_FIELDS = ['link', 'urls', 'new_location', 'logo', 'hubs',
+        'http_etag']
+
     def __init__(self, text_processor=None):
         super(ParsedObject, self).__init__()
         self._text_processor = text_processor
@@ -21,7 +24,8 @@ class ParsedObject(object):
     def __setattr__(self, name, value):
         if isinstance(value, basestring):
             if getattr(self, '_text_processor', None):
-                value = self._text_processor.process(value)
+                if not name in self._UNPROCESSED_FIELDS:
+                    value = self._text_processor.process(value)
 
         object.__setattr__(self, name, value)
 
