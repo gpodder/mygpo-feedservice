@@ -81,6 +81,9 @@ def parse_feed(feed_url, text_processor, mod_since_utc=None, base_url=None,
 
     resp = urlstore.fetch_url(feed_url)
 
+    if not resp:
+        return
+
     parser = parser_cls(feed_url, resp, text_processor=text_processor)
 
     return parser.get_feed()
