@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
 import time
 import urllib2
+import httplib
 from email import utils
 import base64
 from collections import namedtuple
@@ -81,6 +82,9 @@ def fetch_url(url):
             return None
         else:
             raise
+
+    except httplib.BadStatusLine:
+        return None
 
     return r
 
