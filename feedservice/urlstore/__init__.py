@@ -83,7 +83,7 @@ def fetch_url(url):
         else:
             raise
 
-    except httplib.BadStatusLine:
+    except (httplib.BadStatusLine, urllib2.URLError):
         return None
 
     return r
