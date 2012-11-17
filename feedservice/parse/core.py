@@ -6,6 +6,7 @@ class Parser(object):
 
     def __init__(self, url, resp):
         # resp is a file-like object as returned by urllib2.urlopen
+        self.url = url
         self.resp = resp
 
 
@@ -18,4 +19,5 @@ class Parser(object):
 
 
     def get_new_location(self):
-        return getattr(self.resp, 'new_location', None)
+        if self.resp.code == 301 and self.url != self.resp.url:
+            return self.resp.url

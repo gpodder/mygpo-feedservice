@@ -5,23 +5,35 @@ import urlparse
 USER_AGENT = 'mygpo-feedservice +http://feeds.gpodder.net/'
 
 
+class PermanentRedirectException(Exception):
+    """ Raised on a permanent redirect, if it should not be followed """
+
+
 class HeadRequest(urllib2.Request):
     def get_method(self):
         return "HEAD"
 
 
+class SmartRedirectHandler(urllib2.HTTPRedirectHandler):
+
+    def http_error_301(self, req, fp, code, msg, headers):
+        result = urllib2.HTTPRedirectHandler.http_error_301(
+            self, req, fp, code, msg, headers)
+        result.status = code
+        return result
+
+    def http_error_302(self, req, fp, code, msg, headers):
+        result = urllib2.HTTPRedirectHandler.http_error_302(
+            self, req, fp, code, msg, headers)
+        result.status = code
+        return result
+
+
 class RedirectCollector(urllib2.HTTPRedirectHandler):
     """Collects all seen (intermediate) redirects for a HTTP request"""
 
-    def __init__(self, url, *args, **kwargs):
-        self.url = url
-        self.urls = [url]
-        self.permanent_redirect = None
-
-    def http_error_default(self, req, fp, code, msg, hdrs):
-        pass
-
     def http_error_301(self, req, fp, code, msg, hdrs):
+
         self.permanent_redirect = hdrs['Location']
         return True
 

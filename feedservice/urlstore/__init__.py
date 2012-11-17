@@ -11,7 +11,7 @@ from couchdbkit.ext.django.schema import *
 from django.core.cache import cache as ccache
 
 from feedservice.urlstore.models import URLObject
-from feedservice.httputils import RedirectCollector
+from feedservice.httputils import SmartRedirectHandler
 
 
 logger = logging.getLogger(__name__)
@@ -48,37 +48,20 @@ def fetch_url(url):
     Fetches the given URL and stores the resulting object in the Cache
     """
 
-    collector = RedirectCollector(url)
+    handler = SmartRedirectHandler()
 
     request = urllib2.Request(url)
 
     request.add_header('User-Agent', USER_AGENT)
-    opener = urllib2.build_opener(collector)
+    opener = urllib2.build_opener(handler)
 
     try:
         r = opener.open(request)
 
-        if isinstance(r, bool):
-            # TODO: we do we get a bool here?!
-            return
-
-        r.urls = collector.get_redirects()
-        r.permanent_redirect = collector.permanent_redirect
-
-#        obj.expires = parse_header_date(headers.get('expires', None))
-#        obj.last_mod_up = parse_header_date(headers.get('last-modified', None))
-#        obj.content_type = headers.get('content-type', None)
-#        obj.last_mod_utc = datetime.utcnow()
-#        obj.etag = r.headers.dict.get('etag', None)
-
-#        length = headers.get('content-length', None)
-
     except urllib2.HTTPError, e:
         logger.info('HTTP %d' % e.code)
 
-        if e.code == 304:
-            obj = cached
-        elif e.code == 403:
+        if e.code == 403:
             return None
         else:
             raise
