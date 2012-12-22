@@ -51,6 +51,7 @@ class Feedparser(Parser):
         feed.hub = self.get_hub_url()
         feed.http_last_modified = self.get_last_modified()
         feed.http_etag = self.get_etag()
+        feed.flattr = self.get_flattr()
 
         #feed.logo_data = self.get_logo_inline()
 
@@ -96,6 +97,10 @@ class Feedparser(Parser):
 
         return None
 
+
+    def get_flattr(self):
+        flattr_links = [l['href'] for l in self.feed.feed.links if l['rel'] == 'payment']
+        return next(iter(flattr_links), None)
 
 
     def get_feed_tags(self):
@@ -152,6 +157,7 @@ class FeedparserEpisodeParser(object):
         episode.language = self.get_language()
         episode.set_files(list(self.get_files()))
         episode.released = self.get_timestamp()
+        episode.flattr = self.get_flattr()
         return episode
 
 
@@ -263,3 +269,8 @@ class FeedparserEpisodeParser(object):
             files.append(f)
 
         return files
+
+
+    def get_flattr(self):
+        flattr_links = [l['href'] for l in self.entry.links if l['rel'] == 'payment']
+        return next(iter(flattr_links), None)
