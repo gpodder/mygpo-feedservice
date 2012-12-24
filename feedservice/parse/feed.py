@@ -239,11 +239,11 @@ class FeedparserEpisodeParser(object):
 
 
     def get_timestamp(self):
-        if not getattr(self.entry, 'updated_parsed', False):
+        if not getattr(self.entry, 'published_parsed', False):
             return None
 
         try:
-            return int(time.mktime(self.entry.updated_parsed))
+            return int(time.mktime(self.entry.published_parsed))
 
         except OverflowError:
             # dates before 1970 cause OverflowError
