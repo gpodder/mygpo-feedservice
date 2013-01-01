@@ -99,7 +99,7 @@ class Feedparser(Parser):
 
 
     def get_flattr(self):
-        flattr_links = [l['href'] for l in self.feed.feed.links if l['rel'] == 'payment']
+        flattr_links = [l['href'] for l in self.feed.feed.get('links', []) if l['rel'] == 'payment']
         return next(iter(flattr_links), None)
 
 
@@ -272,5 +272,5 @@ class FeedparserEpisodeParser(object):
 
 
     def get_flattr(self):
-        flattr_links = [l['href'] for l in self.entry.links if l['rel'] == 'payment']
+        flattr_links = [l['href'] for l in self.entry.get('links', []) if l['rel'] == 'payment']
         return next(iter(flattr_links), None)
