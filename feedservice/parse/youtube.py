@@ -56,7 +56,7 @@ formats = [
     # FLV Sorenson H.263 video, MP3 audio
     (6, ([6, 5],         '5/480x270/7/0/0',      'FLV 270p (480x270)')), #     0.80 Mbps,  64 kbps
     (5, ([5],            '5/320x240/7/0/0',      'FLV 240p (320x240)')), #     0.25 Mbps,  64 kbps
-)
+]
 formats_dict = dict(formats)
 
 
