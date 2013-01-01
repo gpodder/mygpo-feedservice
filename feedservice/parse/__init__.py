@@ -4,6 +4,7 @@
 
 import logging
 import urllib2
+import httplib
 
 from feedservice.parse.models import Feed
 from feedservice import urlstore
@@ -12,8 +13,9 @@ from feedservice.parse import feed, youtube, soundcloud, fm4, vimeo
 
 logger = logging.getLogger(__name__)
 
-class UnchangedException(Exception):
-    pass
+
+class FetchFeedException(Exception):
+    """ raised when there's an error while fetching the podcast feed """
 
 
 PARSER_CLASSES = (
@@ -79,10 +81,13 @@ def parse_feed(feed_url, text_processor, mod_since_utc=None, base_url=None,
 
     parser_cls = get_parser_cls(feed_url)
 
-    resp = urlstore.fetch_url(feed_url)
+    try:
+        resp = urlstore.fetch_url(feed_url)
+        assert resp
 
-    if not resp:
-        return
+    except (httplib.InvalidURL, urllib2.URLError, urllib2.HTTPError,
+            httplib.BadStatusLine) as ex:
+        raise FetchFeedException(ex)
 
     parser = parser_cls(feed_url, resp, text_processor=text_processor)
 

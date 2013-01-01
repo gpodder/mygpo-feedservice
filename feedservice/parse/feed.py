@@ -2,6 +2,7 @@
 #
 
 import time
+from xml.sax import SAXException
 
 import feedparser
 
@@ -10,9 +11,10 @@ from feedservice.utils import parse_time, url_fix
 from feedservice.parse.mimetype import get_mimetype
 from feedservice.parse import mimetype
 from feedservice.parse.core import Parser
+from feedservice.parse.models import ParserException
 
 
-class FeedparserError(Exception):
+class FeedparserError(ParserException):
     pass
 
 
@@ -27,6 +29,10 @@ class Feedparser(Parser):
             self.feed = feedparser.parse(url)
         except UnicodeEncodeError as e:
             raise FeedparserError(e)
+
+        except SAXException as saxe:
+            raise FeedparserError('malformed feed, or no feed at all: %s' %
+                    (str(saxe)))
 
         self.text_processor = text_processor
 

@@ -55,21 +55,7 @@ def fetch_url(url):
     request.add_header('User-Agent', USER_AGENT)
     opener = urllib2.build_opener(handler)
 
-    try:
-        r = opener.open(request)
-
-    except urllib2.HTTPError, e:
-        logger.info('HTTP %d' % e.code)
-
-        if e.code == 403:
-            return None
-        else:
-            raise
-
-    except (httplib.BadStatusLine, urllib2.URLError):
-        return None
-
-    return r
+    return opener.open(request)
 
 
 def parse_header_date(date_str):
