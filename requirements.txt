@@ -1,0 +1,5 @@
+Django
+feedparser
+couchdbkit
+PIL
+html2text
