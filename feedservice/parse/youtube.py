@@ -25,6 +25,7 @@ from urlparse import parse_qs
 from feedservice.parse.feed import Feedparser, FeedparserEpisodeParser
 from feedservice.parse.models import ParserException
 from feedservice.urlstore import fetch_url
+from feedservice.utils import remove_html_tags
 
 # http://en.wikipedia.org/wiki/YouTube#Quality_and_codecs
 # format id, (preferred ids, path(?), description) # video bitrate, audio bitrate
@@ -220,7 +221,10 @@ class YoutubeEpisodeParser(FeedparserEpisodeParser):
                         yield int(video_info['itag'][0]), video_info['url'][0] + "&signature=" + video_info['sig'][0]
                 else:
                     error_info = parse_qs(page)
-                    error_message = util.remove_html_tags(error_info['reason'][0])
+                    if 'reason' in error_info:
+                        error_message = remove_html_tags(error_info['reason'][0])
+                    else:
+                        error_message = 'Reason unknown'
                     raise YouTubeError('Cannot download video: %s' % error_message)
 
             fmt_id_url_map = sorted(find_urls(page), reverse=True)
