@@ -40,12 +40,19 @@ def parse_feeds(feed_urls, mod_since_utc=None,
 
     for url in feed_urls:
 
-        feed = parse_feed(url, text_processor)#, mod_since_utc, base_url, **kwargs)
+        try:
+            feed = parse_feed(url, text_processor)
+
+        except FetchFeedException as ffe:
+            feed = Feed()
+            feed.urls = [url]
+            feed.new_location = None
+            feed.add_error('fetch-feed', str(ffe))
 
         if not feed:
             continue
 
-        visited  = feed.urls#['urls']
+        visited  = feed.urls
         new_loc  = feed.new_location
 
         # we follow RSS-redirects automatically
@@ -86,7 +93,7 @@ def parse_feed(feed_url, text_processor, mod_since_utc=None, base_url=None,
         assert resp
 
     except (httplib.InvalidURL, urllib2.URLError, urllib2.HTTPError,
-            httplib.BadStatusLine) as ex:
+            httplib.BadStatusLine, ValueError) as ex:
         raise FetchFeedException(ex)
 
     parser = parser_cls(feed_url, resp, text_processor=text_processor)
