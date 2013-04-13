@@ -1,4 +1,4 @@
-from json import json
+from feedservice.utils import json
 
 from feedservice.parse.models import ParsedObject
 

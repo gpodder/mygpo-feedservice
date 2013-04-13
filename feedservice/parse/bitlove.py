@@ -1,5 +1,5 @@
 import urllib
-from feedservice.json import json
+from feedservice.utils import json
 
 
 """

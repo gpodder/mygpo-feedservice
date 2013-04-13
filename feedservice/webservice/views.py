@@ -15,7 +15,7 @@ from django.views.generic.base import View
 
 from feedservice.httputils import select_matching_option
 from feedservice.parse import parse_feeds
-from feedservice.json import json
+from feedservice.utils import json
 from feedservice.urlstore.cache import URLObjectCache
 from feedservice.webservice.utils import ObjectEncoder
 from feedservice.parse.text import StripHtmlTags, ConvertMarkdown
