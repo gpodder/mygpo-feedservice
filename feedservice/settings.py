@@ -86,6 +86,7 @@ DATABASES = {'default': {'ENGINE': 'django.db.backends.sqlite3'}}
 
 SOUNDCLOUD_CONSUMER_KEY = ''
 
+FLATTR_THING = ''
 
 try:
     from settings_prod import *

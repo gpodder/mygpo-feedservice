@@ -12,7 +12,14 @@
   <h1>gpodder.net Feed-Service</h1>
 
   <p>The gpodder.net Feed-Service is a webservice for parsing podcast feeds and
-  returning the simplified contents as JSON.</p>
+  returning the simplified contents as JSON.
+
+  {% if flattr_thing %}
+   <a href="http://flattr.com/thing/{{ flattr_thing }}" target="_blank">
+    <img src="http://api.flattr.com/button/flattr-badge-large.png" alt="Flattr this" title="Flattr this" border="0" />
+   </a>
+  {% endif %}
+  </p>
 
   <h2>Usage</h2>
 

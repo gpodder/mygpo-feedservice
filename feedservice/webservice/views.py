@@ -12,6 +12,8 @@ from django.http import HttpResponse
 from django.shortcuts import render
 from django.contrib.sites.models import get_current_site
 from django.views.generic.base import View
+from django.views.generic import TemplateView
+from django.conf import settings
 
 from feedservice.httputils import select_matching_option
 from feedservice.parse import parse_feeds
@@ -19,6 +21,16 @@ from feedservice.utils import json
 from feedservice.urlstore.cache import URLObjectCache
 from feedservice.webservice.utils import ObjectEncoder
 from feedservice.parse.text import StripHtmlTags, ConvertMarkdown
+
+
+class IndexView(TemplateView):
+
+    template_name = 'index.html'
+
+    def get(self, request):
+        return self.render_to_response({
+            'flattr_thing': settings.FLATTR_THING,
+        })
 
 
 class ParseView(View):
