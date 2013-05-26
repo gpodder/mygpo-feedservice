@@ -19,6 +19,10 @@ logger = logging.getLogger(__name__)
 USER_AGENT = 'mygpo-feedservice +http://feeds.gpodder.net/'
 
 
+class NotModified(Exception):
+    """ raised instead of HTTPException with code 304 """
+
+
 def get_url(url, use_cache=True, headers_only=False):
     """
     Gets the contents for the given URL from either memcache,
@@ -43,7 +47,7 @@ def get_url(url, use_cache=True, headers_only=False):
     return obj
 
 
-def fetch_url(url):
+def fetch_url(url, mod_since_utc=None):
     """
     Fetches the given URL and stores the resulting object in the Cache
     """
@@ -53,9 +57,20 @@ def fetch_url(url):
     request = urllib2.Request(url)
 
     request.add_header('User-Agent', USER_AGENT)
+
+    if mod_since_utc:
+        request.add_header('If-Modified-Since', mod_since_utc)
+
     opener = urllib2.build_opener(handler)
 
-    return opener.open(request)
+    try:
+        return opener.open(request)
+
+    except urllib2.HTTPError as e:
+        if e.code == 304: # Not Modified
+            raise NotModified
+        else:
+            raise
 
 
 def parse_header_date(date_str):

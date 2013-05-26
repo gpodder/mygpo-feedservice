@@ -41,7 +41,7 @@ def parse_feeds(feed_urls, mod_since_utc=None,
     for url in feed_urls:
 
         try:
-            feed = parse_feed(url, text_processor)
+            feed = parse_feed(url, text_processor, mod_since_utc)
 
         except FetchFeedException as ffe:
             feed = Feed()
@@ -89,8 +89,11 @@ def parse_feed(feed_url, text_processor, mod_since_utc=None, base_url=None,
     parser_cls = get_parser_cls(feed_url)
 
     try:
-        resp = urlstore.fetch_url(feed_url)
+        resp = urlstore.fetch_url(feed_url, mod_since_utc)
         assert resp
+
+    except urlstore.NotModified:
+        return None
 
     except (httplib.InvalidURL, urllib2.URLError, urllib2.HTTPError,
             httplib.BadStatusLine, ValueError) as ex:

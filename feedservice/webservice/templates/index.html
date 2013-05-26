@@ -108,7 +108,7 @@
   </ul>
   <p>Headers
    <ul>
-    <li><strong>Last-Modified</strong>: The timestamp of the latest change to any of the requested feeds. This value can be used in the If-Modified-Since parameter to subsequent requests. This header is not sent for the HTML formatted response.</li>
+    <li><strong>Last-Modified</strong>: The earliest of the Last-Modified values of the requested podcast feeds. This value can be used in the If-Modified-Since parameter to subsequent requests. This header is not sent for the HTML formatted response.</li>
     <li><strong>Content-Type</strong>: <em>application/json</em> if your request contains <em>Accept: application/json</em>, otherwise the response will contain the HTML representation with <em>text/html</em>.</li>
     <li><strong>Content-Encoding</strong>: <em>gzip</em> if the response is compressed. See <em><a href="#accept-encoding">Accept-Encoding</a></em> for details.</li>
     <li><strong>Vary</strong>: Contains the request headers for which the response can vary. Currently this is <em>Accept, User-Agent, Accept-Encoding</em>.</li>

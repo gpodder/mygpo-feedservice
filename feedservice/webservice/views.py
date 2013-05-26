@@ -63,10 +63,8 @@ class ParseView(View):
         base_url = request.build_absolute_uri('/')
 
         if urls:
-            podcasts = parse_feeds(urls, text_processor=text_processor )#, mod_since_utc, base_url,
-                #cache, **parse_args)
-
-            last_mod_utc = datetime.utcnow()
+            podcasts = parse_feeds(urls, mod_since_utc, text_processor)
+            last_mod_utc = self.get_earliest_last_modified(podcasts)
             response = self.send_response(request, podcasts, last_mod_utc, accept)
 
         else:
@@ -77,6 +75,15 @@ class ParseView(View):
         return response
 
     post = get
+
+
+    def get_earliest_last_modified(self, podcasts):
+        """ returns the earliest Last-Modified date of all podcasts """
+        timestamps = (getattr(p, 'http_last_modified', None) for p in odcasts)
+        timestamps = filter(None, timestamps)
+        timestamps = map(email.utils.parsedate, timestamps)
+        timestamps = sorted(timestamps)
+        return next(iter(timestamps), None)
 
 
     def send_response(self, request, podcasts, last_mod_utc, accepted_formats):
@@ -93,8 +100,9 @@ class ParseView(View):
                     indent=None, separators=(',', ':'), cls=ObjectEncoder)
             response.write(dense_json)
 
-            last_mod_time = time.mktime(last_mod_utc.timetuple())
-            response['Last-Modified'] = email.utils.formatdate(last_mod_time)
+            if last_mod_utc:
+                last_mod_time = time.mktime(last_mod_utc)
+                response['Last-Modified'] = email.utils.formatdate(last_mod_time)
 
 
         else:
