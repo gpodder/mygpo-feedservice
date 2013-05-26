@@ -79,7 +79,7 @@ class ParseView(View):
 
     def get_earliest_last_modified(self, podcasts):
         """ returns the earliest Last-Modified date of all podcasts """
-        timestamps = (getattr(p, 'http_last_modified', None) for p in odcasts)
+        timestamps = (getattr(p, 'http_last_modified', None) for p in podcasts)
         timestamps = filter(None, timestamps)
         timestamps = map(email.utils.parsedate, timestamps)
         timestamps = sorted(timestamps)
