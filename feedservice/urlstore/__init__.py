@@ -7,10 +7,8 @@ import base64
 from collections import namedtuple
 import logging
 
-from couchdbkit.ext.django.schema import *
 from django.core.cache import cache as ccache
 
-from feedservice.urlstore.models import URLObject
 from feedservice.httputils import SmartRedirectHandler
 
 
