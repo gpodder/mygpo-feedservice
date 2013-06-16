@@ -48,6 +48,7 @@ class Feedparser(Parser):
         feed.title = self.get_title()
         feed.link = self.get_link()
         feed.description = self.get_description()
+        feed.subtitle = self.get_subtitle()
         feed.author = self.get_author()
         feed.language = self.get_language()
         feed.urls = self.get_urls()
@@ -58,6 +59,7 @@ class Feedparser(Parser):
         feed.http_last_modified = self.get_last_modified()
         feed.http_etag = self.get_etag()
         feed.flattr = self.get_flattr()
+        feed.license = self.get_license()
 
         #feed.logo_data = self.get_logo_inline()
 
@@ -77,8 +79,10 @@ class Feedparser(Parser):
         return self.feed.feed.get('link', None)
 
     def get_description(self):
-        return self.feed.feed.get('subtitle', None)
+        return self.feed.feed.get('description', None)
 
+    def get_subtitle(self):
+        return self.feed.feed.get('subtitle', None)
 
     def get_author(self):
         return self.feed.feed.get('author',
@@ -108,6 +112,10 @@ class Feedparser(Parser):
         links = self.feed.feed.get('links', [])
         flattr_links = [l['href'] for l in links if l['rel'] == 'payment']
         return next(iter(flattr_links), None)
+
+
+    def get_license(self):
+        return self.feed.feed.get('license', None)
 
 
     def get_feed_tags(self):
@@ -157,6 +165,7 @@ class FeedparserEpisodeParser(object):
         episode.guid = self.get_guid()
         episode.title = self.get_title()
         episode.description = self.get_description()
+        episode.subtitle = self.get_subtitle()
         episode.content = self.get_content()
         episode.link = self.get_link()
         episode.author = self.get_author()
@@ -165,6 +174,7 @@ class FeedparserEpisodeParser(object):
         episode.set_files(list(self.get_files()))
         episode.released = self.get_timestamp()
         episode.flattr = self.get_flattr()
+        episode.license = self.get_license()
         return episode
 
 
@@ -220,10 +230,11 @@ class FeedparserEpisodeParser(object):
 
 
     def get_description(self):
-        for key in ('summary', 'subtitle', 'link'):
-            value = self.entry.get(key, None)
-            if value:
-                return value
+        return self.entry.get('summary', None)
+
+
+    def get_subtitle(self):
+        return self.entry.get('subtitle', None)
 
 
     def get_content(self):
@@ -282,3 +293,7 @@ class FeedparserEpisodeParser(object):
         links = self.entry.get('links', [])
         flattr_links = [l['href'] for l in links if l['rel'] == 'payment']
         return next(iter(flattr_links), None)
+
+
+    def get_license(self):
+        return self.entry.get('license', None)

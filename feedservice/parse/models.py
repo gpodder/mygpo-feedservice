@@ -14,7 +14,7 @@ class ParserException(Exception):
 class ParsedObject(object):
 
     _UNPROCESSED_FIELDS = ['link', 'urls', 'new_location', 'logo', 'hubs',
-        'http_etag', 'flattr']
+        'http_etag', 'flattr', 'license']
 
     def __init__(self, text_processor=None):
         super(ParsedObject, self).__init__()

@@ -64,6 +64,7 @@
      <li><strong>title</strong>: the title of the feed</li>
      <li><strong>link</strong>: the feeds website</li>
      <li><strong>description</strong>: a description of the feed, potentially including HTML characters</li>
+     <li><strong>subtitle</strong>: a short subtitle of the feed, potentially including HTML characters</li>
      <li><strong>author</strong>: the feed's author</li>
      <li><strong>language</strong>: the feed's language</li>
      <li><a name="urls" /><strong>urls</strong>: the redirect-chain of the URL passed in the <em>url</em> parameter. This can be used to match the requested URLs to the entries in the response. A permanent redirect is not included here but given in the <a href="#new_location">new_location</a> field, as it indicates that the client should update the feed's location.</li>
@@ -76,6 +77,7 @@
      <li><strong>warnings</strong>: a dictionary of warnings. The key contains an <a href="#warning-codes">warning code</a> and the value a string representation.</li>
      <li><strong>http_last_modified</strong>: the Unix timestamp of the last modification of the feed (according to the HTTP header).</li>
      <li><strong>http_etag</strong>: the HTTP E-Tag of the feed</li>
+     <li><strong>license</strong>: The URL of the license under which the podcast is published</li>
      <li><strong>episodes</strong>: the list of episodes</li>
     </ul>
    </li>
@@ -86,11 +88,13 @@
      <li><strong>short_title</strong>: the non-repetitive part of the episode title. If an episode number is found, it is also removed and provided separately.</li>
      <li><strong>number</strong>: the episode number which is parsed from the title</li>
      <li><strong>description</strong>: the description of the episode, potentially including HTML characters</li>
+     <li><strong>subtitle</strong>: a short subtitle of the episode, potentially including HTML characters</li>
      <li><strong>link</strong>: the website link for the episode</li>
      <li><strong>released</strong>: the Unix timestamp of the episode's release</li>
      <li><strong>author</strong>: the episode's author</li>
      <li><strong>duration</strong>: the episode's duration in seconds</li>
      <li><strong>language</strong>: the episode's language</li>
+     <li><strong>license</strong>: The URL of the license under which the episode is published</li>
      <li><strong>files</strong>: a list of all files linked by the episode. Each files is represented by an object containing urls, filesize (in Bytes) and mimetype.</li>
     </ul>
    </li>
