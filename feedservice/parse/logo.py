@@ -4,7 +4,7 @@
 import re
 import logging
 
-import Image
+from PIL import Image
 import StringIO
 
 from feedservice import urlstore
