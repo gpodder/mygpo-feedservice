@@ -1,1 +1,1 @@
-feedservice: gunicorn_django
+web: gunicorn_django
