@@ -3,3 +3,4 @@ feedparser
 couchdbkit
 pillow
 html2text
+gunicorn
