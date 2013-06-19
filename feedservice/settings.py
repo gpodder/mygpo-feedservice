@@ -73,6 +73,8 @@ INSTALLED_APPS = (
     'feedservice.webservice',
 )
 
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
 BASE_URL='http://localhost:8080/'
 
 COUCHDB_DATABASES = (
