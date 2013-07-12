@@ -25,8 +25,12 @@ class Feedparser(Parser):
         super(Feedparser, self).__init__(url, resp)
         self.url = url
 
+        request_headers= {
+            'Accept': 'application/rss+xml'
+        }
+
         try:
-            self.feed = feedparser.parse(url)
+            self.feed = feedparser.parse(url, request_headers=request_headers)
         except UnicodeEncodeError as e:
             raise FeedparserError(e)
 
