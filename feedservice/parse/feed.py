@@ -267,7 +267,7 @@ class FeedparserEpisodeParser(object):
         try:
             return int(time.mktime(self.entry.published_parsed))
 
-        except OverflowError:
+        except (ValueError, OverflowError):
             # dates before 1970 cause OverflowError
             return None
 
