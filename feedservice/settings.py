@@ -75,9 +75,7 @@ INSTALLED_APPS = (
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
-    'couchdbkit.ext.django',
     'feedservice.parse',
-    'feedservice.pubsubhubbub',
     'feedservice.urlstore',
     'feedservice.webservice',
 )
@@ -85,11 +83,6 @@ INSTALLED_APPS = (
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 BASE_URL='http://localhost:8080/'
-
-COUCHDB_DATABASES = (
-    ('feedservice.urlstore',     'http://127.0.0.1:5984/feedservice'),
-    ('feedservice.pubsubhubbub', 'http://127.0.0.1:5984/feedservice'),
-)
 
 DATABASES = {'default': {'ENGINE': 'django.db.backends.sqlite3'}}
 

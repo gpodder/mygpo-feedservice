@@ -18,7 +18,6 @@ from django.conf import settings
 from feedservice.httputils import select_matching_option
 from feedservice.parse import parse_feeds
 from feedservice.utils import json
-from feedservice.urlstore.cache import URLObjectCache
 from feedservice.webservice.utils import ObjectEncoder
 from feedservice.parse.text import StripHtmlTags, ConvertMarkdown
 
@@ -52,10 +51,7 @@ class ParseView(View):
 
         text_processor = get_text_processor(request.GET.get('process_text', ''))
 
-        if request.GET.get('use_cache', default=1):
-            cache = URLObjectCache()
-        else:
-            cache = None
+        # TODO: caching has been removed; ?use_cache is not used atm
 
         mod_since_utc = request.META.get('HTTP_IF_MODIFIED_SINCE', None)
         accept = request.META.get('HTTP_ACCEPT', 'application/json')

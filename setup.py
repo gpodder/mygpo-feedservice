@@ -19,7 +19,6 @@ docstrings = re.findall('"""(.*?)"""', main_py, re.DOTALL)
 PACKAGES = (
         PACKAGE,
         'feedservice.parse',
-        'feedservice.pubsubhubbub',
         'feedservice.urlstore',
 )
 

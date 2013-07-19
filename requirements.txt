@@ -1,6 +1,5 @@
 Django>=1.5
 feedparser
-couchdbkit
 pillow
 html2text
 gunicorn
