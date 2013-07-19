@@ -46,14 +46,13 @@ USE_L10N = True
 
 
 # Static asset configuration
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-BASE_DIR = os.path.join(BASE_DIR, '../htdocs')
+PROJECT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 
-STATIC_ROOT = 'static'
-STATIC_URL = '/media/'
+STATIC_ROOT = 'staticfiles'
+STATIC_URL = '/static/'
 
 STATICFILES_DIRS = (
-    os.path.join(BASE_DIR, 'media'),
+    os.path.join(PROJECT_DIR, 'htdocs', 'media'),
 )
 
 # Make this unique, and don't share it with anybody.
