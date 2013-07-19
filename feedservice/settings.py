@@ -97,6 +97,9 @@ SOUNDCLOUD_CONSUMER_KEY = ''
 
 FLATTR_THING = ''
 
+ALLOWED_HOSTS = filter(None, os.getenv('MYGPOFS_ALLOWED_HOSTS', '').split(';'))
+
+
 try:
     from settings_prod import *
 except ImportError, e:
