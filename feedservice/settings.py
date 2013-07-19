@@ -88,7 +88,8 @@ SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 BASE_URL='http://localhost:8080/'
 
-DATABASES = {'default': {'ENGINE': 'django.db.backends.sqlite3'}}
+import dj_database_url
+DATABASES = dj_database_url.config()
 
 SOUNDCLOUD_CONSUMER_KEY = os.getenv('MYGPOFS_SOUNDCLOUD_CONSUMER_KEY', '')
 
