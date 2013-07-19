@@ -1,1 +1,1 @@
-web: gunicorn_django
+web: gunicorn feedservice.wsgi --workers=4

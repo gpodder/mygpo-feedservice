@@ -4,3 +4,5 @@ pillow
 html2text
 gunicorn
 dj-database-url
+dj-static
+static
