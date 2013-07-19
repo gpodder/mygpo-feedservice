@@ -27,6 +27,10 @@ from feedservice.parse.models import ParserException
 from feedservice.urlstore import fetch_url
 from feedservice.utils import remove_html_tags
 
+import logging
+logger = logging.getLogger(__name__)
+
+
 # http://en.wikipedia.org/wiki/YouTube#Quality_and_codecs
 # format id, (preferred ids, path(?), description) # video bitrate, audio bitrate
 formats = [
@@ -34,29 +38,29 @@ formats = [
     # Fallback to an MP4 version of same quality.
     # Try 34 (FLV 360p H.264 AAC) if 18 (MP4 360p) fails.
     # Fallback to 6 or 5 (FLV Sorenson H.263 MP3) if all fails.
-    (46, ([46, 37, 45, 22, 44, 35, 43, 18, 6, 34, 5], '45/1280x720/99/0/0', 'WebM 1080p (1920x1080)')), # N/A,      192 kbps
-    (45, ([45, 22, 44, 35, 43, 18, 6, 34, 5],         '45/1280x720/99/0/0', 'WebM 720p (1280x720)')),   # 2.0 Mbps, 192 kbps
-    (44, ([44, 35, 43, 18, 6, 34, 5],                 '44/854x480/99/0/0',  'WebM 480p (854x480)')),    # 1.0 Mbps, 128 kbps
-    (43, ([43, 18, 6, 34, 5],                         '43/640x360/99/0/0',  'WebM 360p (640x360)')),    # 0.5 Mbps, 128 kbps
+    (46, ([46, 37, 45, 22, 44, 35, 43, 18, 6, 34, 5], '45/1280x720/99/0/0', 'WebM 1080p (1920x1080)')), # N/A, 192 kbps
+    (45, ([45, 22, 44, 35, 43, 18, 6, 34, 5], '45/1280x720/99/0/0', 'WebM 720p (1280x720)')), # 2.0 Mbps, 192 kbps
+    (44, ([44, 35, 43, 18, 6, 34, 5], '44/854x480/99/0/0', 'WebM 480p (854x480)')), # 1.0 Mbps, 128 kbps
+    (43, ([43, 18, 6, 34, 5], '43/640x360/99/0/0', 'WebM 360p (640x360)')), # 0.5 Mbps, 128 kbps
 
     # MP4 H.264 video, AAC audio
     # Try 35 (FLV 480p H.264 AAC) between 720p and 360p because there's no MP4 480p.
     # Try 34 (FLV 360p H.264 AAC) if 18 (MP4 360p) fails.
     # Fallback to 6 or 5 (FLV Sorenson H.263 MP3) if all fails.
     (38, ([38, 37, 22, 35, 18, 34, 6, 5], '38/1920x1080/9/0/115', 'MP4 4K 3072p (4096x3072)')), # 5.0 - 3.5 Mbps, 192 kbps
-    (37, ([37, 22, 35, 18, 34, 6, 5],     '37/1920x1080/9/0/115', 'MP4 HD 1080p (1920x1080)')), # 4.3 - 3.0 Mbps, 192 kbps
-    (22, ([22, 35, 18, 34, 6, 5],         '22/1280x720/9/0/115',  'MP4 HD 720p (1280x720)')),   # 2.9 - 2.0 Mbps, 192 kbps
-    (18, ([18, 34, 6, 5],                 '18/640x360/9/0/115',   'MP4 360p (640x360)')),       #       0.5 Mbps,  96 kbps
+    (37, ([37, 22, 35, 18, 34, 6, 5], '37/1920x1080/9/0/115', 'MP4 HD 1080p (1920x1080)')), # 4.3 - 3.0 Mbps, 192 kbps
+    (22, ([22, 35, 18, 34, 6, 5], '22/1280x720/9/0/115', 'MP4 HD 720p (1280x720)')), # 2.9 - 2.0 Mbps, 192 kbps
+    (18, ([18, 34, 6, 5], '18/640x360/9/0/115', 'MP4 360p (640x360)')), # 0.5 Mbps, 96 kbps
 
     # FLV H.264 video, AAC audio
     # Does not check for 360p MP4.
     # Fallback to 6 or 5 (FLV Sorenson H.263 MP3) if all fails.
-    (35, ([35, 34, 6, 5], '35/854x480/9/0/115',   'FLV 480p (854x480)')), # 1 - 0.80 Mbps, 128 kbps
-    (34, ([34, 6, 5],     '34/640x360/9/0/115',   'FLV 360p (640x360)')), #     0.50 Mbps, 128 kbps
+    (35, ([35, 34, 6, 5], '35/854x480/9/0/115', 'FLV 480p (854x480)')), # 1 - 0.80 Mbps, 128 kbps
+    (34, ([34, 6, 5], '34/640x360/9/0/115', 'FLV 360p (640x360)')), # 0.50 Mbps, 128 kbps
 
     # FLV Sorenson H.263 video, MP3 audio
-    (6, ([6, 5],         '5/480x270/7/0/0',      'FLV 270p (480x270)')), #     0.80 Mbps,  64 kbps
-    (5, ([5],            '5/320x240/7/0/0',      'FLV 240p (320x240)')), #     0.25 Mbps,  64 kbps
+    (6, ([6, 5], '5/480x270/7/0/0', 'FLV 270p (480x270)')), # 0.80 Mbps, 64 kbps
+    (5, ([5], '5/320x240/7/0/0', 'FLV 240p (320x240)')), # 0.25 Mbps, 64 kbps
 ]
 formats_dict = dict(formats)
 
@@ -119,6 +123,7 @@ class YoutubeParser(Feedparser):
 
         if m is not None:
             next = 'http://www.youtube.com/rss/user/'+ m.group(1) +'/videos.rss'
+            logger.debug('YouTube link resolved: %s => %s', self.url, next)
             return next
 
         r = re.compile('http://(?:[a-z]+\.)?youtube\.com/profile?user=([a-z0-9]+)', re.IGNORECASE)
@@ -126,6 +131,7 @@ class YoutubeParser(Feedparser):
 
         if m is not None:
             next = 'http://www.youtube.com/rss/user/'+ m.group(1) +'/videos.rss'
+            logger.debug('YouTube link resolved: %s => %s', self.url, next)
             return next
 
         return self.url
@@ -167,15 +173,15 @@ class YoutubeEpisodeParser(FeedparserEpisodeParser):
 
 
     def get_youtube_id(self, url):
-        r = re.compile('https?://(?:[a-z]+\.)?youtube\.com/v/(.*)\.swf', re.IGNORECASE).match(url)
+        r = re.compile('http[s]?://(?:[a-z]+\.)?youtube\.com/v/(.*)\.swf', re.IGNORECASE).match(url)
         if r is not None:
             return r.group(1)
 
-        r = re.compile('https?://(?:[a-z]+\.)?youtube\.com/watch\?v=([^&]*)', re.IGNORECASE).match(url)
+        r = re.compile('http[s]?://(?:[a-z]+\.)?youtube\.com/watch\?v=([^&]*)', re.IGNORECASE).match(url)
         if r is not None:
             return r.group(1)
 
-        r = re.compile('https?://(?:[a-z]+\.)?youtube\.com/v/(.*)[?]', re.IGNORECASE).match(url)
+        r = re.compile('http[s]?://(?:[a-z]+\.)?youtube\.com/v/(.*)[?]', re.IGNORECASE).match(url)
         if r is not None:
             return r.group(1)
 
@@ -221,10 +227,7 @@ class YoutubeEpisodeParser(FeedparserEpisodeParser):
                         yield int(video_info['itag'][0]), video_info['url'][0] + "&signature=" + video_info['sig'][0]
                 else:
                     error_info = parse_qs(page)
-                    if 'reason' in error_info:
-                        error_message = remove_html_tags(error_info['reason'][0])
-                    else:
-                        error_message = 'Reason unknown'
+                    error_message = remove_html_tags(error_info['reason'][0])
                     raise YouTubeError('Cannot download video: %s' % error_message)
 
             fmt_id_url_map = sorted(find_urls(page), reverse=True)
@@ -233,7 +236,7 @@ class YoutubeEpisodeParser(FeedparserEpisodeParser):
                 raise YouTubeError('fmt_url_map not found for video ID "%s"' % vid)
 
             # Default to the highest fmt_id if we don't find a match below
-            _, url  = fmt_id_url_map[0]
+            _, url = fmt_id_url_map[0]
 
             formats_available = set(fmt_id for fmt_id, url in fmt_id_url_map)
             fmt_id_url_map = dict(fmt_id_url_map)
@@ -247,8 +250,27 @@ class YoutubeEpisodeParser(FeedparserEpisodeParser):
                     else:
                         description = 'Unknown'
 
+                    logger.info('Found YouTube format: %s (fmt_id=%d)',
+                            description, id)
                     url = fmt_id_url_map[id]
                     break
 
         return url
 
+
+
+    def get_real_cover(self):
+        r = re.compile('http://www\.youtube\.com/rss/user/([^/]+)/videos\.rss', \
+                re.IGNORECASE)
+        m = r.match(self.url)
+
+        if m is not None:
+            username = m.group(1)
+            api_url = 'http://gdata.youtube.com/feeds/api/users/%s?v=2' % username
+            data = fetch_url(api_url)
+            match = re.search('<media:thumbnail url=[\'"]([^\'"]+)[\'"]/>', data)
+            if match is not None:
+                logger.debug('YouTube userpic for %s is: %s', self.url, match.group(1))
+                return match.group(1)
+
+        return None
