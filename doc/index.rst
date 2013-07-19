@@ -3,20 +3,19 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to gpodder.net Feed-Service's documentation!
-====================================================
+gpodder.net Feed-Service Docs
+=============================
 
-Contents:
+The gpodder.net Feed-Service is a webservice for parsing podcast feeds and
+returning the simplified contents as `JSON <http://www.json.org/>`_.
+
+Contents
+--------
 
 .. toctree::
    :maxdepth: 2
 
-
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
-
+   rest
+   examples
+   instances
+   source
