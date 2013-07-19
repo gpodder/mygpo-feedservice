@@ -5,6 +5,7 @@
 import logging
 import urllib2
 import httplib
+import socket
 
 from feedservice.parse.models import Feed
 from feedservice import urlstore
@@ -96,7 +97,7 @@ def parse_feed(feed_url, text_processor, mod_since_utc=None, base_url=None,
         return None
 
     except (httplib.InvalidURL, urllib2.URLError, urllib2.HTTPError,
-            httplib.BadStatusLine, ValueError) as ex:
+            httplib.BadStatusLine, ValueError, socket.error) as ex:
         raise FetchFeedException(ex)
 
     parser = parser_cls(feed_url, resp, text_processor=text_processor)
