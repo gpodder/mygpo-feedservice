@@ -2,7 +2,16 @@
 
 import os, os.path
 
-DEBUG = True
+def bool_env(val, default):
+    """Replaces string based environment values with Python booleans"""
+
+    if not val in os.environ:
+        return default
+
+    return True if os.environ.get(val) == 'True' else False
+
+
+DEBUG = bool_env('MYGPOFS_DEBUG', True)
 TEMPLATE_DEBUG = DEBUG
 
 ADMINS = (
