@@ -2,3 +2,6 @@
 feedservice/settings_prod.py
 build/
 static
+
+# API Docs
+doc/_build
