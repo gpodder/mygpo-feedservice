@@ -35,6 +35,14 @@
    curl --header "Accept: application/json" "$SERVER?<strong>url</strong>=http://www.dancarlin.com/cswdc.xml&amp;<strong>process_text</strong>=strip_html"</a> #<a href="/parse?url=http://www.dancarlin.com/cswdc.xml&process_text=strip_html" title="see HTML response">^</a>
    curl --header "Accept: application/json" -d "url=http://feeds.feedburner.com/linuxoutlaws" $SERVER #<a href="/parse?url=http://feeds.feedburner.com/linuxoutlaws" title="see HTML response">^</a></pre>
 
+  <form action="{% url "parse" %}" method="get">
+   <h3>Try it</h3>
+   Enter a feed URL <input type="text" name="url" placeholder="http://" style="width: 50%" />
+   <button type="submit">OK</button>
+  </form>
+
+  <h2>Docs</h2>
+
   <a href="https://gpoddernet-feed-service.readthedocs.org/">Read the full docs</a>
 
   <h3>Requests</h3>
