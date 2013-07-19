@@ -108,6 +108,7 @@ class ParseView(View):
             response = render(request, 'pretty_response.html', {
                     'response': pretty_json,
                     'site': get_current_site(request),
+                    'flattr_thing': settings.FLATTR_THING,
                 })
 
         response['Content-Type'] = content_type
