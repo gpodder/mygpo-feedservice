@@ -1,8 +1,9 @@
+{% load staticfiles %}
 <html>
  <head>
-  <link href="media/screen.css" type="text/css" rel="stylesheet" />
-  <link href="media/prettify.css" type="text/css" rel="stylesheet" />
-  <script type="text/javascript" src="media/prettify.js"></script>
+  <link href="{% static "screen.css" %}" type="text/css" rel="stylesheet" />
+  <link href="{% static "prettify.css" %}" type="text/css" rel="stylesheet" />
+  <script type="text/javascript" src="{% static "prettify.js" %}"></script>
  </head>
  <body onload="prettyPrint()">
   <h1>HTML Response</h1>
