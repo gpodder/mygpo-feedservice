@@ -5,3 +5,7 @@ body {
 a, a:visited {
     color: black;
 }
+
+pre.prettyprint {
+    overflow:scroll;
+}
