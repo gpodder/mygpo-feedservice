@@ -56,7 +56,7 @@ STATICFILES_DIRS = (
 )
 
 # Make this unique, and don't share it with anybody.
-SECRET_KEY = 'm6jkg5lzard@k^p(wui4gtx_zu4s=26c+c0bk+k1xsik6+derf'
+SECRET_KEY = os.getenv('MYGPOFS_SECRET_KEY', '')
 
 # List of callables that know how to import templates from various sources.
 TEMPLATE_LOADERS = (
