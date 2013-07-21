@@ -5,3 +5,6 @@ static
 
 # API Docs
 doc/_build
+
+# the runtime environment is managed separately
+.env
