@@ -7,7 +7,6 @@ import base64
 from collections import namedtuple
 import logging
 
-from django.core.cache import cache as ccache
 
 from feedservice.httputils import SmartRedirectHandler
 
@@ -19,30 +18,6 @@ USER_AGENT = 'mygpo-feedservice +http://feeds.gpodder.net/'
 
 class NotModified(Exception):
     """ raised instead of HTTPException with code 304 """
-
-
-def get_url(url, use_cache=True, headers_only=False):
-    """
-    Gets the contents for the given URL from either memcache,
-    the datastore or the URL itself
-    """
-
-    logger.info('URLStore: retrieving ' + url)
-
-    cached = ccache.get(url) if use_cache else None
-
-    if not cached or cached.expired() or not cached.valid():
-        logger.info('URLStore: not using cache')
-        obj = fetch_url(url, cached, headers_only)
-
-    else:
-        logger.info('URLStore: found in cache')
-        obj = cached
-
-    if use_cache:
-        ccache.set(url, obj)
-
-    return obj
 
 
 def fetch_url(url, mod_since_utc=None):

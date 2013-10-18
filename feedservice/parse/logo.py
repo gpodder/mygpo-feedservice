@@ -31,7 +31,7 @@ class Feed(object):
 
         try:
             url, content, last_mod_up, last_mod_utc, etag, content_type, \
-                length = urlstore.get_url(logo_url)
+                length = urlstore.fetch_url(logo_url)
 
         except Exception, e:
             msg = 'could not fetch feed logo %(logo_url)s: %(msg)s' % \

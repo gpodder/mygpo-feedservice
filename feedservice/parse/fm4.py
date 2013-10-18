@@ -38,7 +38,6 @@ import feedparser
 
 from xml.dom import minidom
 
-from feedservice.urlstore import get_url
 from feedservice.parse.models import Feed, Episode
 from feedservice.parse.feed import Feedparser, FeedparserEpisodeParser
 from feedservice.parse.mimetype import get_mimetype
