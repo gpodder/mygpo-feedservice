@@ -227,7 +227,11 @@ class YoutubeEpisodeParser(FeedparserEpisodeParser):
                         yield int(video_info['itag'][0]), video_info['url'][0] + "&signature=" + video_info['sig'][0]
                 else:
                     error_info = parse_qs(page)
-                    error_message = remove_html_tags(error_info['reason'][0])
+
+                    if 'reason' not in error_info:
+                        error_message = 'Unknown error'
+                    else:
+                        error_message = remove_html_tags(error_info['reason'][0])
                     raise YouTubeError('Cannot download video: %s' % error_message)
 
             fmt_id_url_map = sorted(find_urls(page), reverse=True)
