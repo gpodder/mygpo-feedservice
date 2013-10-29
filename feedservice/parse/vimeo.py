@@ -26,7 +26,7 @@ from feedservice.urlstore import fetch_url
 VIMEO_RE = re.compile(r'http://vimeo\.com/user(\d+)/videos/rss')
 VIMEOCOM_RE = re.compile(r'http://vimeo\.com/(\d+)$', re.IGNORECASE)
 MOOGALOOP_RE = re.compile(r'http://vimeo\.com/moogaloop\.swf\?clip_id=(\d+)$', re.IGNORECASE)
-SIGNATURE_RE = re.compile(r'"signature":"([^"]+)","timestamp":(\d+)')
+SIGNATURE_RE = re.compile(r'"timestamp":(\d+),"signature":"([^"]+)"')
 
 
 class VimeoError(BaseException): pass
@@ -106,7 +106,7 @@ class VimeoEpisodeParser(FeedparserEpisodeParser):
         if sig_pair is None:
             raise VimeoError('Cannot get signature pair from Vimeo')
 
-        signature, timestamp = sig_pair.groups()
+        timestamp, signature = sig_pair.groups()
         params = '&'.join('%s=%s' % i for i in [
             ('clip_id', video_id),
             ('sig', signature),
