@@ -26,7 +26,7 @@ class Feedparser(Parser):
         self.url = url
 
         request_headers= {
-            'Accept': 'application/rss+xml'
+            'Accept': 'application/rss+xml,application/xml;q=0.9,*/*;q=0.8'
         }
 
         try:
