@@ -34,6 +34,10 @@ class Feedparser(Parser):
         except UnicodeEncodeError as e:
             raise FeedparserError(e)
 
+        except TypeError as ex:
+            # http://www.t-shops.co.uk/poll/hidden/podcasting/mwm_8.xml
+            raise FeedparserError(ex)
+
         except SAXException as saxe:
             raise FeedparserError('malformed feed, or no feed at all: %s' %
                     (str(saxe)))
