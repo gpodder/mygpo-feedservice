@@ -13,6 +13,9 @@ from feedservice.parse import mimetype
 from feedservice.parse.core import Parser
 from feedservice.parse.models import ParserException
 
+#TODO: the timeout stuff is just a workaround; proper solution: pass a stream
+# to feedparser.parse()
+import socket
 
 class FeedparserError(ParserException):
     pass
@@ -29,7 +32,9 @@ class Feedparser(Parser):
             'Accept': 'application/rss+xml,application/xml;q=0.9,*/*;q=0.8'
         }
 
+        timeout = socket.getdefaulttimeout()
         try:
+            socket.setdefaulttimeout(10)
             self.feed = feedparser.parse(url, request_headers=request_headers)
         except UnicodeEncodeError as e:
             raise FeedparserError(e)
@@ -41,6 +46,8 @@ class Feedparser(Parser):
         except SAXException as saxe:
             raise FeedparserError('malformed feed, or no feed at all: %s' %
                     (str(saxe)))
+        finally:
+            socket.setdefaulttimeout(timeout)
 
         self.text_processor = text_processor
 
