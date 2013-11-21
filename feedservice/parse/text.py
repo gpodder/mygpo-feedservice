@@ -51,5 +51,5 @@ class ConvertMarkdown(object):
             text = html2text.html2text(html)
             return text.strip()
 
-        except HTMLParser.HTMLParseError:
+        except (TypeError, HTMLParser.HTMLParseError):
             return ''
