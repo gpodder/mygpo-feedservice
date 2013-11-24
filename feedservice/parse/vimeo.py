@@ -91,7 +91,7 @@ class VimeoEpisodeParser(FeedparserEpisodeParser):
 
 
 
-    def get_real_download_url(self, url, preferred_fmt_id=None):
+    def get_real_download_url(self, url):
         quality = 'sd'
         codecs = 'H264,VP8,VP6'
 
