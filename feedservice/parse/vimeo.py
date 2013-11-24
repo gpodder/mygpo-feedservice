@@ -20,6 +20,7 @@
 import re
 import urllib
 
+from feedservice.parse import FetchFeedException
 from feedservice.parse.feed import Feedparser, FeedparserEpisodeParser
 from feedservice.utils import fetch_url
 
@@ -29,7 +30,7 @@ MOOGALOOP_RE = re.compile(r'http://vimeo\.com/moogaloop\.swf\?clip_id=(\d+)$', r
 SIGNATURE_RE = re.compile(r'"timestamp":(\d+),"signature":"([^"]+)"')
 
 
-class VimeoError(BaseException): pass
+class VimeoError(FetchFeedException): pass
 
 
 class VimeoParser(Feedparser):
