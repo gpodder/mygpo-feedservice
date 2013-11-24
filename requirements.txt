@@ -1,9 +1,11 @@
 Django>=1.5
-feedparser
-pillow
-html2text
-gunicorn
+Pillow
 dj-database-url
 dj-static
-static
+feedparser
+gunicorn
+html2text
 psycopg2
+simplejson
+static
+wsgiref
