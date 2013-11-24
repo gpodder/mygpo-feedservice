@@ -19,10 +19,12 @@
 import sys
 import time
 from itertools import chain
+import collections
 import urllib
 import urllib2
 import urlparse
 import re
+from htmlentitydefs import entitydefs
 
 
 USER_AGENT = 'mygpo-feedservice +http://feeds.gpodder.net/'
@@ -279,8 +281,6 @@ def parse_header_list(values):
     Accept-Language: de;q=1, en;q=0.5; *;q=0
     and returns the results as a dictionary and a sorted list
     """
-    import re
-    import collections
 
     q_re = re.compile('q=([01](\.\d{0,4})?|(\.\d{0,4}))')
     default_q = 1

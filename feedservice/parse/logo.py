@@ -4,7 +4,7 @@
 import re
 import logging
 
-from PIL import Image
+from PIL import Image, ImageDraw
 import StringIO
 
 from feedservice.utils import flatten, longest_substr, get_data_uri, fetch_url
