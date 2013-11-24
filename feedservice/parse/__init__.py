@@ -8,7 +8,7 @@ import httplib
 import socket
 
 from feedservice.parse.models import Feed
-from feedservice import urlstore
+from feedservice.utils import fetch_url, NotModified
 from feedservice.parse import feed, youtube, soundcloud, fm4, vimeo
 
 
@@ -90,10 +90,10 @@ def parse_feed(feed_url, text_processor, mod_since_utc=None, base_url=None,
     parser_cls = get_parser_cls(feed_url)
 
     try:
-        resp = urlstore.fetch_url(feed_url, mod_since_utc)
+        resp = fetch_url(feed_url, mod_since_utc)
         assert resp
 
-    except urlstore.NotModified:
+    except NotModified:
         return None
 
     except (httplib.InvalidURL, urllib2.URLError, urllib2.HTTPError,

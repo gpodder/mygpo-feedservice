@@ -24,8 +24,7 @@ from urlparse import parse_qs
 
 from feedservice.parse.feed import Feedparser, FeedparserEpisodeParser
 from feedservice.parse.models import ParserException
-from feedservice.urlstore import fetch_url
-from feedservice.utils import remove_html_tags
+from feedservice.utils import remove_html_tags, fetch_url
 
 import logging
 logger = logging.getLogger(__name__)

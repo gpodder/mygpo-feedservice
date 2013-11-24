@@ -7,9 +7,7 @@ import logging
 from PIL import Image
 import StringIO
 
-from feedservice import urlstore
-from feedservice import httputils
-from feedservice.utils import flatten, longest_substr
+from feedservice.utils import flatten, longest_substr, get_data_uri, fetch_url
 from feedservice.parse import mimetype
 from feedservice.parse.bitlove import get_bitlove_torrent
 
@@ -31,7 +29,7 @@ class Feed(object):
 
         try:
             url, content, last_mod_up, last_mod_utc, etag, content_type, \
-                length = urlstore.fetch_url(logo_url)
+                length = fetch_url(logo_url)
 
         except Exception, e:
             msg = 'could not fetch feed logo %(logo_url)s: %(msg)s' % \
@@ -51,7 +49,7 @@ class Feed(object):
         if any(transform_args.values()):
             content, mimetype = self.transform_image(content, mimetype, **transform_args)
 
-        return httputils.get_data_uri(content, mimetype)
+        return get_data_uri(content, mimetype)
 
 
     @staticmethod

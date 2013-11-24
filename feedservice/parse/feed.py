@@ -222,7 +222,7 @@ class FeedparserEpisodeParser(object):
             except (TypeError, ValueError):
                 filesize = None
 
-            #TODO: optional: urls = httputils.get_redirect_chain(enclosure['href'])
+            #TODO: optional: urls = tils.get_redirect_chain(enclosure['href'])
             urls = [enclosure['href']]
             yield (urls, mimetype, filesize)
 
@@ -239,7 +239,7 @@ class FeedparserEpisodeParser(object):
             except (TypeError, ValueError):
                 filesize = None
 
-            #TODO: optional: urls = httputils.get_redirect_chain(media['url'])
+            #TODO: optional: urls = utils.get_redirect_chain(media['url'])
             urls = [media['url']]
             yield urls, mimetype, filesize
 

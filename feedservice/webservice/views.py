@@ -15,9 +15,8 @@ from django.views.generic.base import View
 from django.views.generic import TemplateView
 from django.conf import settings
 
-from feedservice.httputils import select_matching_option
 from feedservice.parse import parse_feeds
-from feedservice.utils import json
+from feedservice.utils import json, select_matching_option
 from feedservice.webservice.utils import ObjectEncoder
 from feedservice.parse.text import StripHtmlTags, ConvertMarkdown
 

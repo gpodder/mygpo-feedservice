@@ -32,9 +32,8 @@ from django.conf import settings
 
 from feedservice.parse.models import Feed, Episode, File
 from feedservice.parse.feed import Feedparser, FeedparserEpisodeParser
-from feedservice.urlstore import fetch_url
 from feedservice.parse.mimetype import get_mimetype
-from feedservice.utils import json
+from feedservice.utils import json, fetch_url
 
 
 

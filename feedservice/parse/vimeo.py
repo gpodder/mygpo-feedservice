@@ -21,7 +21,7 @@ import re
 import urllib
 
 from feedservice.parse.feed import Feedparser, FeedparserEpisodeParser
-from feedservice.urlstore import fetch_url
+from feedservice.utils import fetch_url
 
 VIMEO_RE = re.compile(r'http://vimeo\.com/user(\d+)/videos/rss')
 VIMEOCOM_RE = re.compile(r'http://vimeo\.com/(\d+)$', re.IGNORECASE)

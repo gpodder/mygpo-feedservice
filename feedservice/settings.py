@@ -82,7 +82,6 @@ INSTALLED_APPS = (
     'django.contrib.sessions',
     'django.contrib.staticfiles',
     'feedservice.parse',
-    'feedservice.urlstore',
     'feedservice.webservice',
 )
 
