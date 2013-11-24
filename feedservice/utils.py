@@ -220,6 +220,10 @@ class HeadRequest(urllib2.Request):
 class RedirectCollector(urllib2.HTTPRedirectHandler):
     """Collects all seen (intermediate) redirects for a HTTP request"""
 
+    def __init__(self, *args, **kargs):
+        self.urls = []
+        super(RedirectCollector, self).__init__(*args, **kwargs)
+
     def http_error_301(self, req, fp, code, msg, hdrs):
 
         self.permanent_redirect = hdrs['Location']
