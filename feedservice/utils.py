@@ -25,6 +25,9 @@ import urllib2
 import urlparse
 import re
 from htmlentitydefs import entitydefs
+import StringIO
+
+from PIL import Image, ImageDraw
 
 
 USER_AGENT = 'mygpo-feedservice +http://feeds.gpodder.net/'
@@ -330,3 +333,44 @@ def get_data_uri(data, mimetype):
     import base64
     encoded = base64.b64encode(data)
     return 'data:%s;base64,%s' % (mimetype, encoded)
+
+
+def transform_image(content, mtype, size, img_format):
+    """
+    Transforms (resizes, converts) the image and returns
+    the resulting bytes and mimetype
+    """
+
+    content_io = StringIO.StringIO(content)
+    img = Image.open(content_io)
+
+    try:
+        size = int(size)
+    except (ValueError, TypeError):
+        size = None
+
+    if img.mode not in ('RGB', 'RGBA'):
+        img = img.convert('RGB')
+
+    if img_format:
+        mtype = 'image/%s' % img_format
+    else:
+        img_format = mtype[mtype.find('/')+1:]
+
+    if size:
+        img = img.resize((size, size), Image.ANTIALIAS)
+
+    # If it's a RGBA image, composite it onto a white background for JPEG
+    if img.mode == 'RGBA':
+        background = Image.new('RGB', img.size)
+        draw = ImageDraw.Draw(background)
+        draw.rectangle((-1, -1, img.size[0]+1, img.size[1]+1),
+                       fill=(255, 255, 255))
+        del draw
+        img = Image.composite(img, background, img)
+
+    io = StringIO.StringIO()
+    img.save(io, img_format.upper())
+    content = io.getvalue()
+
+    return content, mtype

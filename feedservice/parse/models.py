@@ -2,8 +2,10 @@
 #
 
 import re
+import logging
 
-from feedservice.utils import flatten, longest_substr
+from feedservice.utils import flatten, longest_substr, get_data_uri, \
+    fetch_url, transform_image
 from feedservice.parse import mimetype
 
 
@@ -75,6 +77,41 @@ class Feed(ParsedObject):
         files = flatten(episode.files for episode in self.episodes)
         types = filter(None, (f.mimetype for f in files))
         return mimetype.get_podcast_types(types)
+
+    def get_logo_inline(self):
+        """ Fetches the feed's logo and returns its data URI """
+
+        if not self.inline_logo:
+            return None
+
+        logo_url = self.get_logo_url()
+
+        if not logo_url:
+            return None
+
+        try:
+            url, content, last_mod_up, last_mod_utc, etag, content_type, \
+                length = fetch_url(logo_url)
+
+        except Exception, e:
+            msg = 'could not fetch feed logo %(logo_url)s: %(msg)s' % \
+                dict(logo_url=logo_url, msg=str(e))
+            self.add_warning('fetch-logo', msg)
+            logging.info(msg)
+            return None
+
+        # TODO: uncomment
+        #if last_mod_up and mod_since_up and last_mod_up <= mod_since_up:
+        #    return None
+
+        mtype = mimetype.get_mimetype(None, url)
+
+        transform_args = dict(size=self.scale_to, img_format=self.logo_format)
+
+        if any(transform_args.values()):
+            content, mtype = transform_image(content, mtype, **transform_args)
+
+        return get_data_uri(content, mtype)
 
 
 class Episode(ParsedObject):
