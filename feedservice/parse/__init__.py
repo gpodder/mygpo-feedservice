@@ -9,7 +9,6 @@ import socket
 
 from feedservice.parse.models import Feed
 from feedservice.utils import fetch_url, NotModified
-from feedservice.parse import feed, youtube, soundcloud, fm4, vimeo
 
 
 logger = logging.getLogger(__name__)
@@ -19,7 +18,9 @@ class FetchFeedException(Exception):
     """ raised when there's an error while fetching the podcast feed """
 
 
-PARSER_CLASSES = (
+def get_parser_classes():
+    from feedservice.parse import feed, youtube, soundcloud, fm4, vimeo
+    return (
         youtube.YoutubeParser,
         vimeo.VimeoParser,
         soundcloud.SoundcloudParser,
@@ -27,6 +28,10 @@ PARSER_CLASSES = (
         fm4.FM4OnDemandPlaylistParser,
         feed.Feedparser, # fallback, has to be the last entry
     )
+
+
+PARSER_CLASSES = get_parser_classes()
+
 
 
 def parse_feeds(feed_urls, mod_since_utc=None,
