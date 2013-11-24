@@ -66,7 +66,7 @@ class Feed(object):
             size = None
 
         if img.mode not in ('RGB', 'RGBA'):
-            img = im.convert('RGB')
+            img = img.convert('RGB')
 
         if img_format:
             mimetype = 'image/%s' % img_format
