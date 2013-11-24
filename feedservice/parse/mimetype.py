@@ -1,9 +1,5 @@
 import mimetypes
-
-try:
-    from collections import Counter
-except ImportError:
-    from feedservice.counter import Counter
+from collections import Counter
 
 
 # If 20% of the episodes of a podcast are of a given type,
