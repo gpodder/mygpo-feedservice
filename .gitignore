@@ -8,3 +8,6 @@ doc/_build
 
 # the runtime environment is managed separately
 .env
+
+# virtualenv
+venv
