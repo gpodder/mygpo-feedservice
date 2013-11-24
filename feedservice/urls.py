@@ -1,4 +1,4 @@
-from django.conf.urls import *
+from django.conf.urls import patterns, url
 
 from feedservice.webservice.views import ParseView, IndexView
 

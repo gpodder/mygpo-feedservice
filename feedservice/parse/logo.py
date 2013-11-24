@@ -1,13 +1,12 @@
 # -*- coding: utf-8 -*-
 #
 
-import re
 import logging
 
 from PIL import Image, ImageDraw
 import StringIO
 
-from feedservice.utils import flatten, longest_substr, get_data_uri, fetch_url
+from feedservice.utils import get_data_uri, fetch_url
 from feedservice.parse import mimetype
 
 
@@ -40,18 +39,18 @@ class Feed(object):
         #if last_mod_up and mod_since_up and last_mod_up <= mod_since_up:
         #    return None
 
-        mimetype = mimetype.get_mimetype(None, url)
+        mtype = mimetype.get_mimetype(None, url)
 
         transform_args = dict(size=self.scale_to, img_format=self.logo_format)
 
         if any(transform_args.values()):
-            content, mimetype = self.transform_image(content, mimetype,
+            content, mtype = self.transform_image(content, mtype,
                                                      **transform_args)
 
-        return get_data_uri(content, mimetype)
+        return get_data_uri(content, mtype)
 
     @staticmethod
-    def transform_image(content, mimetype, size, img_format):
+    def transform_image(content, mtype, size, img_format):
         """
         Transforms (resizes, converts) the image and returns
         the resulting bytes and mimetype
@@ -69,9 +68,9 @@ class Feed(object):
             img = img.convert('RGB')
 
         if img_format:
-            mimetype = 'image/%s' % img_format
+            mtype = 'image/%s' % img_format
         else:
-            img_format = mimetype[mimetype.find('/')+1:]
+            img_format = mtype[mtype.find('/')+1:]
 
         if size:
             img = img.resize((size, size), Image.ANTIALIAS)
@@ -89,4 +88,4 @@ class Feed(object):
         img.save(io, img_format.upper())
         content = io.getvalue()
 
-        return content, mimetype
+        return content, mtype
