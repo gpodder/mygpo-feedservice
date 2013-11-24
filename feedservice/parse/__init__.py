@@ -26,16 +26,15 @@ def get_parser_classes():
         soundcloud.SoundcloudParser,
         soundcloud.SoundcloudFavParser,
         fm4.FM4OnDemandPlaylistParser,
-        feed.Feedparser, # fallback, has to be the last entry
+        feed.Feedparser,  # fallback, has to be the last entry
     )
 
 
 PARSER_CLASSES = get_parser_classes()
 
 
-
 def parse_feeds(feed_urls, mod_since_utc=None,
-        text_processor=None, cache=None, **kwargs):
+                text_processor=None, cache=None, **kwargs):
     """ Parses the specified feeds and returns their JSON representations
 
     RSS-Redirects are followed automatically by including both feeds in the
@@ -58,8 +57,8 @@ def parse_feeds(feed_urls, mod_since_utc=None,
         if not feed:
             continue
 
-        visited  = feed.urls
-        new_loc  = feed.new_location
+        visited = feed.urls
+        new_loc = feed.new_location
 
         # we follow RSS-redirects automatically
         if new_loc and new_loc not in (list(visited_urls) + feed_urls):
@@ -83,7 +82,7 @@ def get_parser_cls(url):
 
 
 def parse_feed(feed_url, text_processor, mod_since_utc=None, base_url=None,
-        cache=None, **kwargs):
+               cache=None, **kwargs):
     """ Parses a feed and returns its JSON object
 
     mod_since_utc: feeds that have not changed since this timestamp are ignored

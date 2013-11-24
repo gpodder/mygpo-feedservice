@@ -1,19 +1,18 @@
 import mimetypes
 from collections import Counter
 
-
 # If 20% of the episodes of a podcast are of a given type,
 # then the podcast is considered to be of that type, too
-TYPE_THRESHOLD=.2
-
+TYPE_THRESHOLD = .2
 
 CONTENT_TYPES = ('image', 'audio', 'video')
 
-def get_podcast_types(episode_mimetypes):
-    """Returns the types of a podcast
 
-    A podcast is considered to be of a given types if the ratio of episodes that are of that type equals TYPE_THRESHOLD
-    """
+def get_podcast_types(episode_mimetypes):
+    """ Returns the types of a podcast
+
+    A podcast is considered to be of a given types if the ratio of episodes
+    that are of that type equals TYPE_THRESHOLD """
 
     episode_types = map(get_type, episode_mimetypes)
     episode_types = filter(None, episode_types)
@@ -23,15 +22,16 @@ def get_podcast_types(episode_mimetypes):
     l = episode_types.items()
     l.sort(key=lambda x: x[1], reverse=True)
 
-    return [x[0] for x in filter(lambda x: max_episodes / float(x[1]) >= TYPE_THRESHOLD, l)]
+    types = filter(lambda x: max_episodes / float(x[1]) >= TYPE_THRESHOLD, l)
+    return [x[0] for x in types]
 
 
 def get_type(mimetype):
-    """Returns the simplified type for the given mimetype
+    """ Returns the simplified type for the given mimetype
 
     All "wanted" mimetypes are mapped to one of audio/video/image
-    Everything else returns None
-    """
+    Everything else returns None """
+
     if not mimetype:
         return None
 
@@ -51,7 +51,7 @@ def get_type(mimetype):
 def get_mimetype(mimetype, url):
     """Returns the mimetype; if None is given it tries to guess it"""
 
-    TORRENT_EXT='.torrent'
+    TORRENT_EXT = '.torrent'
 
     # handle torrent files
     if url[-len(TORRENT_EXT):] == TORRENT_EXT:
@@ -64,4 +64,3 @@ def get_mimetype(mimetype, url):
         mimetype, _encoding = mimetypes.guess_type(url)
 
     return mimetype
-

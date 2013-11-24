@@ -43,36 +43,35 @@ from feedservice.parse.feed import Feedparser, FeedparserEpisodeParser
 from feedservice.parse.mimetype import get_mimetype
 
 
+URL_REGEX = re.compile('http://onapp1\.orf\.at/webcam/fm4/fod/([^/]+)\.xspf$')
+
+CONTENT = {
+    'spezialmusik': (
+        'FM4 Sendungen',
+        'http://onapp1.orf.at/webcam/fm4/fod/SOD_Bild_Spezialmusik.jpg',
+        'http://fm4.orf.at/',
+        'Sendungen jeweils sieben Tage zum Nachhören.',
+    ),
+    'unlimited': (
+        'FM4 Unlimited',
+        'http://onapp1.orf.at/webcam/fm4/fod/SOD_Bild_Unlimited.jpg',
+        'http://fm4.orf.at/unlimited',
+        'Montag bis Freitag (14-15 Uhr)',
+    ),
+    'soundpark': (
+        'FM4 Soundpark',
+        'http://onapp1.orf.at/webcam/fm4/fod/SOD_Bild_Soundpark.jpg',
+        'http://fm4.orf.at/soundpark',
+        'Nacht von Sonntag auf Montag (1-6 Uhr)',
+    ),
+}
+
+
 class FM4OnDemandPlaylistParser(Feedparser):
-
-    URL_REGEX = re.compile('http://onapp1\.orf\.at/webcam/fm4/fod/([^/]+)\.xspf$')
-
-    CONTENT = {
-            'spezialmusik': (
-                'FM4 Sendungen',
-                'http://onapp1.orf.at/webcam/fm4/fod/SOD_Bild_Spezialmusik.jpg',
-                'http://fm4.orf.at/',
-                'Sendungen jeweils sieben Tage zum Nachhören.',
-            ),
-            'unlimited': (
-                'FM4 Unlimited',
-                'http://onapp1.orf.at/webcam/fm4/fod/SOD_Bild_Unlimited.jpg',
-                'http://fm4.orf.at/unlimited',
-                'Montag bis Freitag (14-15 Uhr)',
-            ),
-            'soundpark': (
-                'FM4 Soundpark',
-                'http://onapp1.orf.at/webcam/fm4/fod/SOD_Bild_Soundpark.jpg',
-                'http://fm4.orf.at/soundpark',
-                'Nacht von Sonntag auf Montag (1-6 Uhr)',
-            ),
-    }
-
 
     @classmethod
     def handles_url(cls, url):
-        return bool(cls.URL_REGEX.match(url))
-
+        return bool(URL_REGEX.match(url))
 
     def get_text_contents(self, node):
         if hasattr(node, '__iter__'):
@@ -81,7 +80,6 @@ class FM4OnDemandPlaylistParser(Feedparser):
             return node.data
         else:
             return u''.join(self.get_text_contents(c) for c in node.childNodes)
-
 
     def __init__(self, feed_url, resp, text_processor=None):
 
@@ -91,54 +89,48 @@ class FM4OnDemandPlaylistParser(Feedparser):
         self.data = minidom.parseString(resp.read())
         self.playlist = self.data.getElementsByTagName('playlist')[0]
 
-        super(FM4OnDemandPlaylistParser, self).__init__(feed_url, resp,
-                text_processor=text_processor)
-
+        super(FM4OnDemandPlaylistParser, self).__init__(
+            feed_url, resp, text_processor=text_processor)
 
     def get_category(cls, url):
-        m = cls.URL_REGEX.match(url)
+        m = URL_REGEX.match(url)
         if m is not None:
             return m.group(1)
-
 
     def get_title(self):
         title = self.playlist.getElementsByTagName('title')[0]
         default = self.get_text_contents(title)
-        return self.CONTENT.get(self.category, \
-                (default, None, None, None))[0]
-
+        return CONTENT.get(self.category, (default, None, None, None))[0]
 
     def get_logo_url(self):
-        return self.CONTENT.get(self.category, \
-                (None, None, None, None))[1]
-
+        return CONTENT.get(self.category, (None, None, None, None))[1]
 
     def get_link(self):
-        return self.CONTENT.get(self.category, \
-                (None, None, 'http://fm4.orf.at/', None))[2]
-
+        return CONTENT.get(self.category,
+                           (None, None, 'http://fm4.orf.at/', None))[2]
 
     def get_description(self):
-        return self.CONTENT.get(self.category, \
-                (None, None, None, 'XSPF playlist'))[3]
-
+        return CONTENT.get(self.category,
+                           (None, None, None, 'XSPF playlist'))[3]
 
     def get_episodes(self):
         tracks = self.playlist.getElementsByTagName('track')
-        parsers = [FM4EpisodeParser(t, text_processor=self.text_processor) for t in tracks]
+        parsers = [FM4EpisodeParser(t, text_processor=self.text_processor)
+                   for t in tracks]
         episodes = [p.get_episode() for p in parsers]
         return episodes
-
 
 
 class FM4EpisodeParser(FeedparserEpisodeParser):
 
     def __init__(self, track, text_processor=None):
-        self.title = self.get_text_contents(track.getElementsByTagName('title'))
-        self.url = self.get_text_contents(track.getElementsByTagName('location'))
-        super(FM4EpisodeParser, self).__init__({},
-                text_processor=text_processor)
+        self.title = self.get_text_contents(
+            track.getElementsByTagName('title'))
+        self.url = self.get_text_contents(
+            track.getElementsByTagName('location'))
 
+        super(FM4EpisodeParser, self).__init__({},
+                                               text_processor=text_processor)
 
     def get_text_contents(self, node):
         if hasattr(node, '__iter__'):
@@ -148,14 +140,11 @@ class FM4EpisodeParser(FeedparserEpisodeParser):
         else:
             return u''.join(self.get_text_contents(c) for c in node.childNodes)
 
-
     def get_guid(self):
         return self.url
 
-
     def get_title(self):
         return self.title
-
 
     def list_files(self):
         if not self.url:
@@ -163,7 +152,6 @@ class FM4EpisodeParser(FeedparserEpisodeParser):
 
         mimetype = get_mimetype(None, self.url)
         yield ([self.url], mimetype, None)
-
 
     def get_timestamp(self):
         return 0

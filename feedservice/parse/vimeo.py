@@ -26,11 +26,13 @@ from feedservice.utils import fetch_url
 
 VIMEO_RE = re.compile(r'http://vimeo\.com/user(\d+)/videos/rss')
 VIMEOCOM_RE = re.compile(r'http://vimeo\.com/(\d+)$', re.IGNORECASE)
-MOOGALOOP_RE = re.compile(r'http://vimeo\.com/moogaloop\.swf\?clip_id=(\d+)$', re.IGNORECASE)
+MOOGALOOP_RE = re.compile(r'http://vimeo\.com/moogaloop\.swf\?clip_id=(\d+)$',
+                          re.IGNORECASE)
 SIGNATURE_RE = re.compile(r'"timestamp":(\d+),"signature":"([^"]+)"')
 
 
-class VimeoError(FetchFeedException): pass
+class VimeoError(FetchFeedException):
+    pass
 
 
 class VimeoParser(Feedparser):
@@ -39,19 +41,15 @@ class VimeoParser(Feedparser):
     def handles_url(cls, url):
         return bool(VIMEO_RE.match(url))
 
-
     def __init__(self, url, resp, text_processor=None):
         super(VimeoParser, self).__init__(url, resp,
-                text_processor=text_processor)
-
+                                          text_processor=text_processor)
 
     def get_description(self):
         return self.url
 
-
     def get_podcast_logo(self):
         return None
-
 
     def get_real_channel_url(self):
         result = VIMEOCOM_RE.match(url)
@@ -60,23 +58,19 @@ class VimeoParser(Feedparser):
 
         return url
 
-
     def get_podcast_types(self):
         return ["video"]
 
-
     def get_episodes(self):
         parser = [VimeoEpisodeParser(e, text_processor=self.text_processor)
-            for e in self.feed.entries]
+                  for e in self.feed.entries]
         return [p.get_episode() for p in parser]
-
 
 
 class VimeoEpisodeParser(FeedparserEpisodeParser):
 
     def __init__(self, *args, **kwargs):
         super(VimeoEpisodeParser, self).__init__(*args, **kwargs)
-
 
     def list_files(self):
         for link in getattr(self.entry, 'links', []):
@@ -88,8 +82,6 @@ class VimeoEpisodeParser(FeedparserEpisodeParser):
 
             if is_video_link(url):
                 yield ([dl_url], 'application/x-vimeo', None)
-
-
 
     def get_real_download_url(self, url):
         quality = 'sd'

@@ -11,7 +11,6 @@ from feedservice.utils import flatten, longest_substr, get_data_uri, fetch_url
 from feedservice.parse import mimetype
 
 
-
 class Feed(object):
     """ A parsed Feed """
 
@@ -46,10 +45,10 @@ class Feed(object):
         transform_args = dict(size=self.scale_to, img_format=self.logo_format)
 
         if any(transform_args.values()):
-            content, mimetype = self.transform_image(content, mimetype, **transform_args)
+            content, mimetype = self.transform_image(content, mimetype,
+                                                     **transform_args)
 
         return get_data_uri(content, mimetype)
-
 
     @staticmethod
     def transform_image(content, mimetype, size, img_format):
@@ -77,13 +76,12 @@ class Feed(object):
         if size:
             img = img.resize((size, size), Image.ANTIALIAS)
 
-
         # If it's a RGBA image, composite it onto a white background for JPEG
         if img.mode == 'RGBA':
             background = Image.new('RGB', img.size)
             draw = ImageDraw.Draw(background)
-            draw.rectangle((-1, -1, img.size[0]+1, img.size[1]+1), \
-                    fill=(255, 255, 255))
+            draw.rectangle((-1, -1, img.size[0]+1, img.size[1]+1),
+                           fill=(255, 255, 255))
             del draw
             img = Image.composite(img, background, img)
 
@@ -92,4 +90,3 @@ class Feed(object):
         content = io.getvalue()
 
         return content, mimetype
-

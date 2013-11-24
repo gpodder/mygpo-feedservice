@@ -17,6 +17,7 @@ from feedservice.parse.models import ParserException
 # to feedparser.parse()
 import socket
 
+
 class FeedparserError(ParserException):
     pass
 
@@ -28,7 +29,7 @@ class Feedparser(Parser):
         super(Feedparser, self).__init__(url, resp)
         self.url = url
 
-        request_headers= {
+        request_headers = {
             'Accept': 'application/rss+xml,application/xml;q=0.9,*/*;q=0.8'
         }
 
@@ -45,18 +46,16 @@ class Feedparser(Parser):
 
         except SAXException as saxe:
             raise FeedparserError('malformed feed, or no feed at all: %s' %
-                    (str(saxe)))
+                                  (str(saxe)))
         finally:
             socket.setdefaulttimeout(timeout)
 
         self.text_processor = text_processor
 
-
     @classmethod
     def handles_url(cls, url):
         """ Generic class that can handle every RSS/Atom feed """
         return True
-
 
     def get_feed(self):
         feed = Feed(text_processor=self.text_processor)
@@ -82,10 +81,8 @@ class Feedparser(Parser):
 
         return feed
 
-
     def get_title(self):
         return self.feed.feed.get('title', None)
-
 
     def get_urls(self):
         return [self.url]
@@ -101,16 +98,14 @@ class Feedparser(Parser):
 
     def get_author(self):
         return self.feed.feed.get('author',
-               self.feed.feed.get('itunes_author', None))
+                                  self.feed.feed.get('itunes_author', None))
 
     def get_language(self):
         return self.feed.feed.get('language', None)
 
-
     def get_new_location(self):
-            return super(Feedparser, self).get_new_location() or \
-                self.feed.feed.get('newlocation', None)
-
+        return super(Feedparser, self).get_new_location() or \
+            self.feed.feed.get('newlocation', None)
 
     def get_logo_url(self):
         image = self.feed.feed.get('image', None)
@@ -122,16 +117,13 @@ class Feedparser(Parser):
 
         return None
 
-
     def get_flattr(self):
         links = self.feed.feed.get('links', [])
         flattr_links = [l['href'] for l in links if l['rel'] == 'payment']
         return next(iter(flattr_links), None)
 
-
     def get_license(self):
         return self.feed.feed.get('license', None)
-
 
     def get_feed_tags(self):
         tags = []
@@ -145,10 +137,9 @@ class Feedparser(Parser):
 
         return list(set(tags))
 
-
     def get_hub_url(self):
-        """
-        Returns the Hub URL as specified by
+        """ Returns the Hub URL as specified by
+
         http://pubsubhubbub.googlecode.com/svn/trunk/pubsubhubbub-core-0.3.html#discovery
         """
 
@@ -157,23 +148,18 @@ class Feedparser(Parser):
                 return l.href
         return None
 
-
-
     def get_episodes(self):
-        parser = [FeedparserEpisodeParser(e, self.text_processor) for e in self.feed.entries]
+        parser = [FeedparserEpisodeParser(e, self.text_processor) for e in
+                  self.feed.entries]
         return [p.get_episode() for p in parser]
-
 
 
 class FeedparserEpisodeParser(object):
     """ Parses episodes from a feedparser feed """
 
-
     def __init__(self, entry, text_processor=None):
         self.entry = entry
         self.text_processor = text_processor
-
-
 
     def get_episode(self):
         episode = Episode(self.text_processor)
@@ -192,22 +178,17 @@ class FeedparserEpisodeParser(object):
         episode.license = self.get_license()
         return episode
 
-
     def get_guid(self):
         return self.entry.get('id', None)
-
 
     def get_title(self):
         return self.entry.get('title', None)
 
-
     def get_link(self):
         return self.entry.get('link', None)
 
-
     def get_author(self):
         return self.entry.get('author', self.entry.get('itunes_author', None))
-
 
     def list_files(self):
         for enclosure in getattr(self.entry, 'enclosures', []):
@@ -215,7 +196,7 @@ class FeedparserEpisodeParser(object):
                 continue
 
             mimetype = get_mimetype(enclosure.get('type', ''),
-                    enclosure['href'])
+                                    enclosure['href'])
 
             try:
                 filesize = int(enclosure.get('length', None))
@@ -225,7 +206,6 @@ class FeedparserEpisodeParser(object):
             #TODO: optional: urls = tils.get_redirect_chain(enclosure['href'])
             urls = [enclosure['href']]
             yield (urls, mimetype, filesize)
-
 
         media_content = getattr(self.entry, 'media_content', [])
         for media in media_content:
@@ -243,21 +223,16 @@ class FeedparserEpisodeParser(object):
             urls = [media['url']]
             yield urls, mimetype, filesize
 
-
     def get_description(self):
         return self.entry.get('summary', None)
 
-
     def get_subtitle(self):
         return self.entry.get('subtitle', None)
-
 
     def get_content(self):
         for content in getattr(self.entry, 'content', []):
             if content.value:
                 return content.value
-
-
 
     def get_duration(self):
         str = self.entry.get('itunes_duration', '')
@@ -266,10 +241,8 @@ class FeedparserEpisodeParser(object):
         except ValueError:
             return None
 
-
     def get_language(self):
         return self.entry.get('language', None)
-
 
     def get_timestamp(self):
         if not getattr(self.entry, 'published_parsed', False):
@@ -281,8 +254,6 @@ class FeedparserEpisodeParser(object):
         except (ValueError, OverflowError):
             # dates before 1970 cause OverflowError
             return None
-
-
 
     def get_files(self):
         """Get the download / episode URL of a feedparser entry"""
@@ -303,12 +274,10 @@ class FeedparserEpisodeParser(object):
 
         return files
 
-
     def get_flattr(self):
         links = self.entry.get('links', [])
         flattr_links = [l['href'] for l in links if l['rel'] == 'payment']
         return next(iter(flattr_links), None)
-
 
     def get_license(self):
         return self.entry.get('license', None)
