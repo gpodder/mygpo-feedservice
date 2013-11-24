@@ -9,7 +9,6 @@ import StringIO
 
 from feedservice.utils import flatten, longest_substr, get_data_uri, fetch_url
 from feedservice.parse import mimetype
-from feedservice.parse.bitlove import get_bitlove_torrent
 
 
 
