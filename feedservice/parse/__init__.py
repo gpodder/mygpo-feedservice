@@ -33,8 +33,7 @@ def get_parser_classes():
 PARSER_CLASSES = get_parser_classes()
 
 
-def parse_feeds(feed_urls, mod_since_utc=None,
-                text_processor=None, cache=None, **kwargs):
+def parse_feeds(feed_urls, mod_since_utc=None, text_processor=None):
     """ Parses the specified feeds and returns their JSON representations
 
     RSS-Redirects are followed automatically by including both feeds in the
@@ -61,7 +60,7 @@ def parse_feeds(feed_urls, mod_since_utc=None,
         new_loc = feed.new_location
 
         # we follow RSS-redirects automatically
-        if new_loc and new_loc not in (list(visited_urls) + feed_urls):
+        if new_loc and new_loc not in (list(visited_urls) + visited):
             feed_urls.append(new_loc)
 
         visited_urls.add(url)
@@ -72,8 +71,6 @@ def parse_feeds(feed_urls, mod_since_utc=None,
 
 
 def get_parser_cls(url):
-    feed_cls = None
-
     for cls in PARSER_CLASSES:
         if cls.handles_url(url):
             return cls
@@ -81,14 +78,11 @@ def get_parser_cls(url):
     raise ValueError('no feed can handle %s' % url)
 
 
-def parse_feed(feed_url, text_processor, mod_since_utc=None, base_url=None,
-               cache=None, **kwargs):
+def parse_feed(feed_url, text_processor, mod_since_utc=None):
     """ Parses a feed and returns its JSON object
 
     mod_since_utc: feeds that have not changed since this timestamp are ignored
-    base_url: base url of the service -- used for pubsub subscriptions
     text_processor: class to pre-process text contents
-    cache: cache or None to disable caching
     """
 
     parser_cls = get_parser_cls(feed_url)
