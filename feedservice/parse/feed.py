@@ -3,6 +3,7 @@
 
 import time
 from xml.sax import SAXException
+import urllib2
 
 import feedparser
 
@@ -13,9 +14,7 @@ from feedservice.parse import mimetype
 from feedservice.parse.core import Parser
 from feedservice.parse.models import ParserException
 
-#TODO: the timeout stuff is just a workaround; proper solution: pass a stream
-# to feedparser.parse()
-import socket
+DEFAULT_TIMEOUT=10
 
 
 class FeedparserError(ParserException):
@@ -33,10 +32,11 @@ class Feedparser(Parser):
             'Accept': 'application/rss+xml,application/xml;q=0.9,*/*;q=0.8'
         }
 
-        timeout = socket.getdefaulttimeout()
         try:
-            socket.setdefaulttimeout(10)
-            self.feed = feedparser.parse(url, request_headers=request_headers)
+            stream = self._open_url(self.url, request_headers=request_headers,
+                                    timeout=DEFAULT_TIMEOUT)
+            self.feed = feedparser.parse(stream)
+
         except UnicodeEncodeError as e:
             raise FeedparserError(e)
 
@@ -47,10 +47,25 @@ class Feedparser(Parser):
         except SAXException as saxe:
             raise FeedparserError('malformed feed, or no feed at all: %s' %
                                   (str(saxe)))
-        finally:
-            socket.setdefaulttimeout(timeout)
 
         self.text_processor = text_processor
+
+
+    def _open_url(self, url, etag=None, modified=None, agent=None, referrer=None, handlers=None, request_headers=None, timeout=None):
+
+        if handlers is None:
+            handlers = []
+
+        auth = None
+        request = feedparser._build_urllib2_request(url, agent, etag, modified, referrer, auth, request_headers)
+        opener = urllib2.build_opener(*tuple(handlers + [feedparser._FeedURLHandler()]))
+        opener.addheaders = [] # RMK - must clear so we only send our custom User-Agent
+        try:
+            return opener.open(request, timeout=timeout)
+        finally:
+            opener.close()
+
+
 
     @classmethod
     def handles_url(cls, url):
