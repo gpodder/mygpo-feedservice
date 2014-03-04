@@ -218,12 +218,12 @@ class YoutubeEpisodeParser(FeedparserEpisodeParser):
             # Try to find the best video format available for this video
             # (http://forum.videohelp.com/topic336882-1800.html#1912972)
             def find_urls(page):
-                r4 = re.search('.*&url_encoded_fmt_stream_map=([^&]+)&.*', page)
+                r4 = re.search('url_encoded_fmt_stream_map=([^&]+)', page)
                 if r4 is not None:
                     fmt_url_map = urllib.unquote(r4.group(1))
                     for fmt_url_encoded in fmt_url_map.split(','):
                         video_info = parse_qs(fmt_url_encoded)
-                        yield int(video_info['itag'][0]), video_info['url'][0] + "&signature=" + video_info['sig'][0]
+                        yield int(video_info['itag'][0]), video_info['url'][0]
                 else:
                     error_info = parse_qs(page)
 
