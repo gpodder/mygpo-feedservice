@@ -63,4 +63,9 @@ def get_mimetype(mimetype, url):
     if not mimetype:
         mimetype, _encoding = mimetypes.guess_type(url)
 
+    # mime type was not guessed; we might have some special cases
+    if not mimetype:
+        if url.endswith('.opus'):
+            return 'audio/ogg; codecs=opus'
+
     return mimetype
