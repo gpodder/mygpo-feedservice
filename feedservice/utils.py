@@ -20,12 +20,10 @@ import sys
 import time
 from itertools import chain
 import collections
-import urllib
-import urllib2
-import urlparse
 import re
-from htmlentitydefs import entitydefs
-import StringIO
+from feedservice.compat import (entitydefs, urlsplit, quote, quote_plus,
+    urlunsplit, HTTPRedirectHandler, StringIO, build_opener, Request,
+    HTTPError, SplitResult)
 
 from PIL import Image, ImageDraw
 
@@ -39,7 +37,7 @@ try:
     JSONDecodeError = ValueError
 
 except ImportError:
-    print >> sys.stderr, 'simplejson not found'
+    print('simplejson not found', file=sys.stderr)
 
     # Otherwise use json from the stdlib
     import json
@@ -71,7 +69,7 @@ def parse_time(value):
         try:
             t = time.strptime(value, format)
             return t.tm_hour * 60*60 + t.tm_min * 60 + t.tm_sec
-        except ValueError, e:
+        except ValueError as e:
             continue
 
     return int(value)
@@ -94,9 +92,9 @@ def longest_substr(strings):
     reference = shortest_of(strings) #strings[0]
     length = len(reference)
     #find a suitable slice i:j
-    for i in xrange(length):
+    for i in range(length):
         #only consider strings long at least len(substr) + 1
-        for j in xrange(i + len(substr) + 1, length):
+        for j in range(i + len(substr) + 1, length):
             candidate = reference[i:j]
             if all(candidate in text for text in strings):
                 substr = candidate
@@ -120,12 +118,12 @@ def url_fix(s, charset='utf-8'):
     :param charset: The target charset for the URL if the url was
                     given as unicode string.
     """
-    if isinstance(s, unicode):
+    if isinstance(s, str):
         s = s.encode(charset, 'ignore')
-    scheme, netloc, path, qs, anchor = urlparse.urlsplit(s)
-    path = urllib.quote(path, '/%')
-    qs = urllib.quote_plus(qs, ':&=')
-    return urlparse.urlunsplit((scheme, netloc, path, qs, anchor))
+    scheme, netloc, path, qs, anchor = urlsplit(s)
+    path = quote(path, '/%')
+    qs = quote_plus(qs, ':&=')
+    return urlunsplit((scheme, netloc, path, qs, anchor))
 
 
 def remove_html_tags(html):
@@ -155,10 +153,10 @@ def remove_html_tags(html):
     result = re_strip_tags.sub('', result)
 
     # Convert numeric XML entities to their unicode character
-    result = re_unicode_entities.sub(lambda x: unichr(int(x.group(1))), result)
+    result = re_unicode_entities.sub(lambda x: chr(int(x.group(1))), result)
 
     # Convert named HTML entities to their unicode character
-    result = re_html_entities.sub(lambda x: unicode(entitydefs.get(x.group(1),''), 'iso-8859-1'), result)
+    result = re_html_entities.sub(lambda x: str(entitydefs.get(x.group(1),''), 'iso-8859-1'), result)
 
     # Convert more than two newlines to two newlines
     result = re.sub('([\r\n]{2})([\r\n])+', '\\1', result)
@@ -166,17 +164,17 @@ def remove_html_tags(html):
     return result.strip()
 
 
-class SmartRedirectHandler(urllib2.HTTPRedirectHandler):
+class SmartRedirectHandler(HTTPRedirectHandler):
 
     def http_error_301(self, req, fp, code, msg, headers):
-        result = urllib2.HTTPRedirectHandler.http_error_301(
+        result = HTTPRedirectHandler.http_error_301(
             self, req, fp, code, msg, headers)
         if result:
             result.status = code
         return result
 
     def http_error_302(self, req, fp, code, msg, headers):
-        result = urllib2.HTTPRedirectHandler.http_error_302(
+        result = HTTPRedirectHandler.http_error_302(
             self, req, fp, code, msg, headers)
         result.status = code
         return result
@@ -193,19 +191,19 @@ def fetch_url(url, mod_since_utc=None):
 
     handler = SmartRedirectHandler()
 
-    request = urllib2.Request(url)
+    request = Request(url)
 
     request.add_header('User-Agent', USER_AGENT)
 
     if mod_since_utc:
         request.add_header('If-Modified-Since', mod_since_utc)
 
-    opener = urllib2.build_opener(handler)
+    opener = build_opener(handler)
 
     try:
         return opener.open(request)
 
-    except urllib2.HTTPError as e:
+    except HTTPError as e:
         if e.code == 304: # Not Modified
             raise NotModified
         else:
@@ -216,12 +214,12 @@ class PermanentRedirectException(Exception):
     """ Raised on a permanent redirect, if it should not be followed """
 
 
-class HeadRequest(urllib2.Request):
+class HeadRequest(Request):
     def get_method(self):
         return "HEAD"
 
 
-class RedirectCollector(urllib2.HTTPRedirectHandler):
+class RedirectCollector(HTTPRedirectHandler):
     """Collects all seen (intermediate) redirects for a HTTP request"""
 
     def __init__(self, *args, **kargs):
@@ -238,7 +236,7 @@ class RedirectCollector(urllib2.HTTPRedirectHandler):
         # automatically follow non-permanent redirects
         if code in (302, 303):
             self.urls.append(newurl)
-            return urllib2.HTTPRedirectHandler.redirect_request(self, req, fp, code, msg, hdrs, newurl)
+            return HTTPRedirectHandler.redirect_request(self, req, fp, code, msg, hdrs, newurl)
 
         # record permanent redirects but don't follow
         elif code == 301:
@@ -249,7 +247,7 @@ class RedirectCollector(urllib2.HTTPRedirectHandler):
     def get_redirects(self):
         """ Returns the complete redirect chain, starting from url """
 
-        urls = map(basic_sanitizing, self.urls)
+        urls = list(map(basic_sanitizing, self.urls))
 
         # include un-sanitized URL for easy matching of
         #response to request URLs
@@ -263,7 +261,7 @@ def get_redirect_chain(url):
     collector = RedirectCollector(url)
     request = HeadRequest(url)
     request.add_header('User-Agent', USER_AGENT)
-    opener = urllib2.build_opener(collector)
+    opener = build_opener(collector)
     r = opener.open(request)
 
     urls = collector.get_redirects()
@@ -277,9 +275,9 @@ def basic_sanitizing(url):
     """
     does basic sanitizing through urlparse and additionally converts the netloc to lowercase
     """
-    r = urlparse.urlsplit(url)
+    r = urlsplit(url)
     netloc = r.netloc.lower()
-    r2 = urlparse.SplitResult(r.scheme, netloc, r.path or '/', r.query, r.fragment)
+    r2 = SplitResult(r.scheme, netloc, r.path or '/', r.query, r.fragment)
     return r2.geturl()
 
 
@@ -342,7 +340,7 @@ def transform_image(content, mtype, size, img_format):
     the resulting bytes and mimetype
     """
 
-    content_io = StringIO.StringIO(content)
+    content_io = StringIO(content)
     img = Image.open(content_io)
 
     try:
@@ -370,7 +368,7 @@ def transform_image(content, mtype, size, img_format):
         del draw
         img = Image.composite(img, background, img)
 
-    io = StringIO.StringIO()
+    io = StringIO()
     img.save(io, img_format.upper())
     content = io.getvalue()
 

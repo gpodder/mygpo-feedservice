@@ -10,4 +10,4 @@ doc/_build
 .env
 
 # virtualenv
-venv
+venv*

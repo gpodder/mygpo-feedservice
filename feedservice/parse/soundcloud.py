@@ -26,7 +26,7 @@ import time
 
 import re
 import email
-import email.Header
+import email.header
 
 from django.conf import settings
 
@@ -98,14 +98,14 @@ class SoundcloudUser(object):
         msg = email.message_from_string(s)
         if header in msg:
             value = msg.get_param(param, header=header)
-            decoded_list = email.Header.decode_header(value)
+            decoded_list = email.header.decode_header(value)
             value = []
             for part, encoding in decoded_list:
                 if encoding:
                     value.append(part.decode(encoding))
                 else:
-                    value.append(unicode(part))
-            return u''.join(value)
+                    value.append(str(part))
+            return ''.join(value)
 
         return None
 

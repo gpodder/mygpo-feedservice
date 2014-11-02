@@ -1,5 +1,6 @@
 import re
-from htmlentitydefs import entitydefs
+
+from feedservice.compat import entitydefs, HTMLParseError
 
 
 class StripHtmlTags(object):
@@ -31,12 +32,12 @@ class StripHtmlTags(object):
         result = re_strip_tags.sub('', result)
         # Convert numeric XML entities to their unicode character
         result = re_unicode_entities.sub(
-            lambda x: unichr(int(x.group(1))),
+            lambda x: chr(int(x.group(1))),
             result)
 
         # Convert named HTML entities to their unicode character
         result = re_html_entities.sub(
-            lambda x: unicode(entitydefs.get(x.group(1), ''), 'iso-8859-1'),
+            lambda x: str(entitydefs.get(x.group(1), ''), 'iso-8859-1'),
             result)
 
         # Convert more than two newlines to two newlines
@@ -49,11 +50,10 @@ class ConvertMarkdown(object):
 
     def process(self, html):
         import html2text
-        import HTMLParser
 
         try:
             text = html2text.html2text(html)
             return text.strip()
 
-        except (TypeError, HTMLParser.HTMLParseError):
+        except (TypeError, HTMLParseError):
             return ''

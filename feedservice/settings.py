@@ -96,7 +96,7 @@ SOUNDCLOUD_CONSUMER_KEY = os.getenv('MYGPOFS_SOUNDCLOUD_CONSUMER_KEY', '')
 
 FLATTR_THING = os.getenv('MYGPOFS_FLATTR_THING', '')
 
-ALLOWED_HOSTS = filter(None, os.getenv('MYGPOFS_ALLOWED_HOSTS', '').split(';'))
+ALLOWED_HOSTS = [_f for _f in os.getenv('MYGPOFS_ALLOWED_HOSTS', '').split(';') if _f]
 
 
 # A sample logging configuration. The only tangible logging
@@ -130,7 +130,7 @@ LOGGING = {
 
 
 try:
-    from settings_prod import *
-except ImportError, e:
+    from .settings_prod import *
+except ImportError as e:
     import sys
-    print >> sys.stderr, 'create settings_prod.py with your customized settings'
+    print('create settings_prod.py with your customized settings', file=sys.stderr)

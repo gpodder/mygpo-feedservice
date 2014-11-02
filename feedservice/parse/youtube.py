@@ -18,10 +18,8 @@
 #
 
 import re
-import urllib
 
-from urlparse import parse_qs
-
+from feedservice.compat import parse_qs, unquote
 from feedservice.parse.feed import Feedparser, FeedparserEpisodeParser
 from feedservice.parse.models import ParserException
 from feedservice.utils import remove_html_tags, fetch_url
@@ -220,7 +218,7 @@ class YoutubeEpisodeParser(FeedparserEpisodeParser):
             def find_urls(page):
                 r4 = re.search('url_encoded_fmt_stream_map=([^&]+)', page)
                 if r4 is not None:
-                    fmt_url_map = urllib.unquote(r4.group(1))
+                    fmt_url_map = unquote(r4.group(1))
                     for fmt_url_encoded in fmt_url_map.split(','):
                         video_info = parse_qs(fmt_url_encoded)
                         yield int(video_info['itag'][0]), video_info['url'][0]

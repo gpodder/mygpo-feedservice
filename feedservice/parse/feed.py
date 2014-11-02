@@ -3,11 +3,11 @@
 
 import time
 from xml.sax import SAXException
-import urllib2
 
 import feedparser
 
 from feedservice.parse.models import Feed, Episode, File
+from feedservice.compat import build_opener
 from feedservice.utils import parse_time, url_fix
 from feedservice.parse.mimetype import get_mimetype
 from feedservice.parse import mimetype
@@ -58,7 +58,7 @@ class Feedparser(Parser):
 
         auth = None
         request = feedparser._build_urllib2_request(url, agent, etag, modified, referrer, auth, request_headers)
-        opener = urllib2.build_opener(*tuple(handlers + [feedparser._FeedURLHandler()]))
+        opener = build_opener(*tuple(handlers + [feedparser._FeedURLHandler()]))
         opener.addheaders = [] # RMK - must clear so we only send our custom User-Agent
         try:
             return opener.open(request, timeout=timeout)

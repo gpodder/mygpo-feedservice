@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 #
 
-import urllib
 import time
 import email.utils
 import cgi
@@ -17,6 +16,7 @@ from django.conf import settings
 
 from feedservice.parse import parse_feeds
 from feedservice.utils import json, select_matching_option
+from feedservice.compat import unquote
 from feedservice.webservice.utils import ObjectEncoder
 from feedservice.parse.text import StripHtmlTags, ConvertMarkdown
 
@@ -36,7 +36,7 @@ class ParseView(View):
 
     def get(self, request):
 
-        urls = map(urllib.unquote, request.REQUEST.getlist('url'))
+        urls = list(map(unquote, request.REQUEST.getlist('url')))
 
         parse_args = dict(
             inline_logo = request.GET.get('inline_logo', default=0),
@@ -75,8 +75,8 @@ class ParseView(View):
     def get_earliest_last_modified(self, podcasts):
         """ returns the earliest Last-Modified date of all podcasts """
         timestamps = (getattr(p, 'http_last_modified', None) for p in podcasts)
-        timestamps = filter(None, timestamps)
-        timestamps = map(email.utils.parsedate, timestamps)
+        timestamps = [_f for _f in timestamps if _f]
+        timestamps = list(map(email.utils.parsedate, timestamps))
         timestamps = sorted(timestamps)
         return next(iter(timestamps), None)
 

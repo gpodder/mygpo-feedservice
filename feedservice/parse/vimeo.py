@@ -18,7 +18,6 @@
 #
 
 import re
-import urllib
 
 from feedservice.parse import FetchFeedException
 from feedservice.parse.feed import Feedparser, FeedparserEpisodeParser
