@@ -94,8 +94,8 @@ def parse_feed(feed_url, text_processor, mod_since_utc=None):
     except NotModified:
         return None
 
-    except (httplib.InvalidURL, urllib2.URLError, urllib2.HTTPError,
-            httplib.BadStatusLine, ValueError, socket.error) as ex:
+    except (httplib.HTTPException, urllib2.URLError, urllib2.HTTPError,
+            ValueError, socket.error) as ex:
         raise FetchFeedException(ex)
 
     parser = parser_cls(feed_url, resp, text_processor=text_processor)
