@@ -18,17 +18,22 @@
 #
 
 import re
-import urllib
+import json
 
 from feedservice.parse import FetchFeedException
 from feedservice.parse.feed import Feedparser, FeedparserEpisodeParser
 from feedservice.utils import fetch_url
 
-VIMEO_RE = re.compile(r'http://vimeo\.com/user(\d+)/videos/rss')
+import logging
+logger = logging.getLogger(__name__)
+
 VIMEOCOM_RE = re.compile(r'http://vimeo\.com/(\d+)$', re.IGNORECASE)
-MOOGALOOP_RE = re.compile(r'http://vimeo\.com/moogaloop\.swf\?clip_id=(\d+)$',
-                          re.IGNORECASE)
+MOOGALOOP_RE = re.compile(r'http://vimeo\.com/moogaloop\.swf\?clip_id=(\d+)$', re.IGNORECASE)
 SIGNATURE_RE = re.compile(r'"timestamp":(\d+),"signature":"([^"]+)"')
+DATA_CONFIG_RE = re.compile(r'data-config-url="([^"]+)"')
+
+# List of qualities, from lowest to highest
+FILEFORMAT_RANKING = ['mobile', 'sd', 'hd']
 
 
 class VimeoError(FetchFeedException):
@@ -39,7 +44,7 @@ class VimeoParser(Feedparser):
 
     @classmethod
     def handles_url(cls, url):
-        return bool(VIMEO_RE.match(url))
+        return bool(VIMEOCOM_RE.match(url))
 
     def __init__(self, url, resp, text_processor=None):
         super(VimeoParser, self).__init__(url, resp,
@@ -51,7 +56,7 @@ class VimeoParser(Feedparser):
     def get_podcast_logo(self):
         return None
 
-    def get_real_channel_url(self):
+    def get_real_channel_url(self, url):
         result = VIMEOCOM_RE.match(url)
         if result is not None:
             return 'http://vimeo.com/%s/videos/rss' % result.group(1)
@@ -83,10 +88,7 @@ class VimeoEpisodeParser(FeedparserEpisodeParser):
             if is_video_link(url):
                 yield ([dl_url], 'application/x-vimeo', None)
 
-    def get_real_download_url(self, url):
-        quality = 'sd'
-        codecs = 'H264,VP8,VP6'
-
+    def get_real_download_url(self, url, preferred_fileformat=None):
         video_id = get_vimeo_id(url)
 
         if video_id is None:
@@ -94,28 +96,41 @@ class VimeoEpisodeParser(FeedparserEpisodeParser):
 
         web_url = 'http://vimeo.com/%s' % video_id
         web_data = fetch_url(web_url).read()
-        sig_pair = SIGNATURE_RE.search(web_data)
+        data_config_frag = DATA_CONFIG_RE.search(web_data)
 
-        if sig_pair is None:
-            raise VimeoError('Cannot get signature pair from Vimeo')
+        if data_config_frag is None:
+            raise VimeoError('Cannot get data config from Vimeo')
 
-        timestamp, signature = sig_pair.groups()
-        params = '&'.join('%s=%s' % i for i in [
-            ('clip_id', video_id),
-            ('sig', signature),
-            ('time', timestamp),
-            ('quality', quality),
-            ('codecs', codecs),
-            ('type', 'moogaloop_local'),
-            ('embed_location', ''),
-        ])
-        player_url = 'http://player.vimeo.com/play_redirect?%s' % params
-        return player_url
+        data_config_url = data_config_frag.group(1).replace('&amp;', '&')
 
+        def get_urls(data_config_url):
+            data_config_data = fetch_url(data_config_url).read().decode('utf-8')
+            data_config = json.loads(data_config_data)
+            for fileinfo in data_config['request']['files'].values():
+                if not isinstance(fileinfo, dict):
+                    continue
 
-def is_video_link(url):
-    return (get_vimeo_id(url) is not None)
+                for fileformat, keys in fileinfo.items():
+                    if not isinstance(keys, dict):
+                        continue
 
+                    yield (fileformat, keys['url'])
+
+        fileformat_to_url = dict(get_urls(data_config_url))
+
+        if preferred_fileformat is not None and preferred_fileformat in fileformat_to_url:
+            logger.debug('Picking preferred format: %s', preferred_fileformat)
+            return fileformat_to_url[preferred_fileformat]
+
+        def fileformat_sort_key_func(fileformat):
+            if fileformat in FILEFORMAT_RANKING:
+                return FILEFORMAT_RANKING.index(fileformat)
+
+            return 0
+
+        for fileformat in sorted(fileformat_to_url, key=fileformat_sort_key_func, reverse=True):
+            logger.debug('Picking best format: %s', fileformat)
+            return fileformat_to_url[fileformat]
 
 def get_vimeo_id(url):
     result = MOOGALOOP_RE.match(url)
@@ -127,3 +142,6 @@ def get_vimeo_id(url):
         return result.group(1)
 
     return None
+
+def is_video_link(url):
+    return (get_vimeo_id(url) is not None)
