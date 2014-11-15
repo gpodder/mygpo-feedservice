@@ -71,7 +71,7 @@ def parse_time(value):
         try:
             t = time.strptime(value, format)
             return t.tm_hour * 60*60 + t.tm_min * 60 + t.tm_sec
-        except ValueError, e:
+        except (ValueError, TypeError):
             continue
 
     return int(value)
