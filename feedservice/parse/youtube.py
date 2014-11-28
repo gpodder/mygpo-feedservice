@@ -223,7 +223,10 @@ class YoutubeEpisodeParser(FeedparserEpisodeParser):
                     fmt_url_map = urllib.unquote(r4.group(1))
                     for fmt_url_encoded in fmt_url_map.split(','):
                         video_info = parse_qs(fmt_url_encoded)
-                        yield int(video_info['itag'][0]), video_info['url'][0]
+                        try:
+                            yield int(video_info['itag'][0]), video_info['url'][0]
+                        except KeyError:
+                            continue
                 else:
                     error_info = parse_qs(page)
 
