@@ -178,7 +178,8 @@ class SmartRedirectHandler(urllib2.HTTPRedirectHandler):
     def http_error_302(self, req, fp, code, msg, headers):
         result = urllib2.HTTPRedirectHandler.http_error_302(
             self, req, fp, code, msg, headers)
-        result.status = code
+        if result is not None:
+            result.status = code
         return result
 
 
