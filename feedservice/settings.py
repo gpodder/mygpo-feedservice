@@ -128,10 +128,3 @@ LOGGING = {
         },
     }
 }
-
-
-try:
-    from settings_prod import *
-except ImportError, e:
-    import sys
-    print >> sys.stderr, 'create settings_prod.py with your customized settings'
