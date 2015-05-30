@@ -6,7 +6,7 @@ import urllib
 import time
 import email.utils
 import cgi
-from datetime import datetime
+import json
 
 from django.http import HttpResponse
 from django.shortcuts import render
@@ -16,7 +16,7 @@ from django.views.generic import TemplateView
 from django.conf import settings
 
 from feedservice.parse import parse_feeds
-from feedservice.utils import json, select_matching_option
+from feedservice.utils import select_matching_option
 from feedservice.webservice.utils import ObjectEncoder
 from feedservice.parse.text import StripHtmlTags, ConvertMarkdown
 
