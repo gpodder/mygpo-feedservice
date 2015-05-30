@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 #
 
-import urllib
+import urllib.request, urllib.parse, urllib.error
 import time
 import email.utils
 import cgi
@@ -36,7 +36,7 @@ class ParseView(View):
 
     def get(self, request):
 
-        urls = map(urllib.unquote, request.REQUEST.getlist('url'))
+        urls = list(map(urllib.parse.unquote, request.REQUEST.getlist('url')))
 
         parse_args = dict(
             inline_logo = request.GET.get('inline_logo', default=0),
@@ -75,8 +75,8 @@ class ParseView(View):
     def get_earliest_last_modified(self, podcasts):
         """ returns the earliest Last-Modified date of all podcasts """
         timestamps = (getattr(p, 'http_last_modified', None) for p in podcasts)
-        timestamps = filter(None, timestamps)
-        timestamps = map(email.utils.parsedate, timestamps)
+        timestamps = [_f for _f in timestamps if _f]
+        timestamps = list(map(email.utils.parsedate, timestamps))
         timestamps = sorted(timestamps)
         return next(iter(timestamps), None)
 

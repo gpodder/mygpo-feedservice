@@ -23,7 +23,7 @@ class ParsedObject(object):
         self._text_processor = text_processor
 
     def __setattr__(self, name, value):
-        if isinstance(value, basestring):
+        if isinstance(value, str):
             if getattr(self, '_text_processor', None):
                 if not name in self._UNPROCESSED_FIELDS:
                     value = self._text_processor.process(value)
@@ -58,7 +58,7 @@ class Feed(ParsedObject):
 
     def get_common_title(self):
         # We take all non-empty titles
-        titles = filter(None, (e.title for e in self.episodes))
+        titles = [_f for _f in (e.title for e in self.episodes) if _f]
 
         # get the longest common substring
         common_title = longest_substr(titles)
@@ -75,7 +75,7 @@ class Feed(ParsedObject):
 
     def get_content_types(self):
         files = flatten(episode.files for episode in self.episodes)
-        types = filter(None, (f.mimetype for f in files))
+        types = [_f for _f in (f.mimetype for f in files) if _f]
         return mimetype.get_podcast_types(types)
 
     def get_logo_inline(self):
@@ -93,7 +93,7 @@ class Feed(ParsedObject):
             url, content, last_mod_up, last_mod_utc, etag, content_type, \
                 length = fetch_url(logo_url)
 
-        except Exception, e:
+        except Exception as e:
             msg = 'could not fetch feed logo %(logo_url)s: %(msg)s' % \
                 dict(logo_url=logo_url, msg=str(e))
             self.add_warning('fetch-logo', msg)
@@ -153,7 +153,7 @@ class Episode(ParsedObject):
         return title
 
     def get_content_types(self):
-        types = filter(None, (f.mimetype for f in self.files))
+        types = [_f for _f in (f.mimetype for f in self.files) if _f]
         return mimetype.get_podcast_types(types)
 
 

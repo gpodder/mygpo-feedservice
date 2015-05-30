@@ -18,9 +18,9 @@
 #
 
 import re
-import urllib
+import urllib.request, urllib.parse, urllib.error
 
-from urlparse import parse_qs
+from urllib.parse import parse_qs
 
 from feedservice.parse.feed import Feedparser, FeedparserEpisodeParser
 from feedservice.parse.models import ParserException
@@ -220,7 +220,7 @@ class YoutubeEpisodeParser(FeedparserEpisodeParser):
             def find_urls(page):
                 r4 = re.search('url_encoded_fmt_stream_map=([^&]+)', page)
                 if r4 is not None:
-                    fmt_url_map = urllib.unquote(r4.group(1))
+                    fmt_url_map = urllib.parse.unquote(r4.group(1))
                     for fmt_url_encoded in fmt_url_map.split(','):
                         video_info = parse_qs(fmt_url_encoded)
                         try:

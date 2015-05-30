@@ -3,8 +3,8 @@
 #
 
 import logging
-import urllib2
-import httplib
+import urllib.request, urllib.error, urllib.parse
+import http.client
 import socket
 
 from feedservice.parse.models import Feed
@@ -94,7 +94,7 @@ def parse_feed(feed_url, text_processor, mod_since_utc=None):
     except NotModified:
         return None
 
-    except (httplib.HTTPException, urllib2.URLError, urllib2.HTTPError,
+    except (http.client.HTTPException, urllib.error.URLError, urllib.error.HTTPError,
             ValueError, socket.error) as ex:
         raise FetchFeedException(ex)
 

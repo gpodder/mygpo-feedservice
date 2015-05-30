@@ -26,7 +26,7 @@ import time
 
 import re
 import email
-import email.Header
+import email.header
 
 from django.conf import settings
 
@@ -104,8 +104,8 @@ class SoundcloudUser(object):
                 if encoding:
                     value.append(part.decode(encoding))
                 else:
-                    value.append(unicode(part))
-            return u''.join(value)
+                    value.append(str(part))
+            return ''.join(value)
 
         return None
 

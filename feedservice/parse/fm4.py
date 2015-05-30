@@ -75,11 +75,11 @@ class FM4OnDemandPlaylistParser(Feedparser):
 
     def get_text_contents(self, node):
         if hasattr(node, '__iter__'):
-            return u''.join(self.get_text_contents(x) for x in node)
+            return ''.join(self.get_text_contents(x) for x in node)
         elif node.nodeType == node.TEXT_NODE:
             return node.data
         else:
-            return u''.join(self.get_text_contents(c) for c in node.childNodes)
+            return ''.join(self.get_text_contents(c) for c in node.childNodes)
 
     def __init__(self, feed_url, resp, text_processor=None):
 
@@ -134,11 +134,11 @@ class FM4EpisodeParser(FeedparserEpisodeParser):
 
     def get_text_contents(self, node):
         if hasattr(node, '__iter__'):
-            return u''.join(self.get_text_contents(x) for x in node)
+            return ''.join(self.get_text_contents(x) for x in node)
         elif node.nodeType == node.TEXT_NODE:
             return node.data
         else:
-            return u''.join(self.get_text_contents(c) for c in node.childNodes)
+            return ''.join(self.get_text_contents(c) for c in node.childNodes)
 
     def get_guid(self):
         return self.url

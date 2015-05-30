@@ -7,5 +7,4 @@ gunicorn
 html2text
 psycopg2
 simplejson
-static
-wsgiref
+static3

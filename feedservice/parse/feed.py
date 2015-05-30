@@ -3,7 +3,7 @@
 
 import time
 from xml.sax import SAXException
-import urllib2
+import urllib.request, urllib.error, urllib.parse
 
 import feedparser
 
@@ -58,7 +58,7 @@ class Feedparser(Parser):
 
         auth = None
         request = feedparser._build_urllib2_request(url, agent, etag, modified, referrer, auth, request_headers)
-        opener = urllib2.build_opener(*tuple(handlers + [feedparser._FeedURLHandler()]))
+        opener = urllib.request.build_opener(*tuple(handlers + [feedparser._FeedURLHandler()]))
         opener.addheaders = [] # RMK - must clear so we only send our custom User-Agent
         try:
             return opener.open(request, timeout=timeout)
@@ -145,7 +145,7 @@ class Feedparser(Parser):
 
         for tag in self.feed.feed.get('tags', []):
             if tag['term']:
-                tags.extend(filter(None, tag['term'].split(',')))
+                tags.extend([_f for _f in tag['term'].split(',') if _f])
 
             if tag['label']:
                 tags.append(tag['label'])

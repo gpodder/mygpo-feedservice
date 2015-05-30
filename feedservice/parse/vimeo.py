@@ -106,11 +106,11 @@ class VimeoEpisodeParser(FeedparserEpisodeParser):
         def get_urls(data_config_url):
             data_config_data = fetch_url(data_config_url).read().decode('utf-8')
             data_config = json.loads(data_config_data)
-            for fileinfo in data_config['request']['files'].values():
+            for fileinfo in list(data_config['request']['files'].values()):
                 if not isinstance(fileinfo, dict):
                     continue
 
-                for fileformat, keys in fileinfo.items():
+                for fileformat, keys in list(fileinfo.items()):
                     if not isinstance(keys, dict):
                         continue
 

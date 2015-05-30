@@ -97,7 +97,7 @@ SOUNDCLOUD_CONSUMER_KEY = os.getenv('MYGPOFS_SOUNDCLOUD_CONSUMER_KEY', '')
 
 FLATTR_THING = os.getenv('MYGPOFS_FLATTR_THING', '')
 
-ALLOWED_HOSTS = filter(None, os.getenv('MYGPOFS_ALLOWED_HOSTS', '').split(';'))
+ALLOWED_HOSTS = [_f for _f in os.getenv('MYGPOFS_ALLOWED_HOSTS', '').split(';') if _f]
 
 
 # A sample logging configuration. The only tangible logging

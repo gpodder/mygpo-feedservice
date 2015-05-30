@@ -1,6 +1,7 @@
 from feedservice.utils import json
 
 from feedservice.parse.models import ParsedObject
+import collections
 
 
 class ObjectEncoder(json.JSONEncoder):
@@ -26,7 +27,7 @@ class ObjectEncoder(json.JSONEncoder):
                 continue
 
             val = getattr(obj, key)
-            if callable(val):
+            if isinstance(val, collections.Callable):
                 continue
 
             d[key] = getattr(obj, key)
