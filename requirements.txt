@@ -8,3 +8,4 @@ html2text
 psycopg2
 simplejson
 static3
+requests

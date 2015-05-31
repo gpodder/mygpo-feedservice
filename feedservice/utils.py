@@ -20,13 +20,12 @@ import sys
 import time
 from itertools import chain
 import collections
-import urllib.request, urllib.parse, urllib.error
-import urllib.request, urllib.error, urllib.parse
 import urllib.parse
 import re
 from html.entities import entitydefs
 import io
 
+import requests
 from PIL import Image, ImageDraw
 
 
@@ -120,8 +119,8 @@ def url_fix(s, charset='utf-8'):
     :param charset: The target charset for the URL if the url was
                     given as unicode string.
     """
-    if isinstance(s, str):
-        s = s.encode(charset, 'ignore')
+#    if isinstance(s, str):
+#        s = s.encode(charset, 'ignore')
     scheme, netloc, path, qs, anchor = urllib.parse.urlsplit(s)
     path = urllib.parse.quote(path, '/%')
     qs = urllib.parse.quote_plus(qs, ':&=')
@@ -166,23 +165,6 @@ def remove_html_tags(html):
     return result.strip()
 
 
-class SmartRedirectHandler(urllib.request.HTTPRedirectHandler):
-
-    def http_error_301(self, req, fp, code, msg, headers):
-        result = urllib.request.HTTPRedirectHandler.http_error_301(
-            self, req, fp, code, msg, headers)
-        if result:
-            result.status = code
-        return result
-
-    def http_error_302(self, req, fp, code, msg, headers):
-        result = urllib.request.HTTPRedirectHandler.http_error_302(
-            self, req, fp, code, msg, headers)
-        if result is not None:
-            result.status = code
-        return result
-
-
 class NotModified(Exception):
     """ raised instead of HTTPException with code 304 """
 
@@ -192,86 +174,15 @@ def fetch_url(url, mod_since_utc=None):
     Fetches the given URL and stores the resulting object in the Cache
     """
 
-    handler = SmartRedirectHandler()
+    headers = {}
 
-    request = urllib.request.Request(url)
-
-    request.add_header('User-Agent', USER_AGENT)
+    # TODO: how to handle redirect in requests?
+    headers['User-Agent'] = USER_AGENT
 
     if mod_since_utc:
-        request.add_header('If-Modified-Since', mod_since_utc)
+        headers['If-Modified-Since'] = mod_since_utc
 
-    opener = urllib.request.build_opener(handler)
-
-    try:
-        return opener.open(request)
-
-    except urllib.error.HTTPError as e:
-        if e.code == 304: # Not Modified
-            raise NotModified
-        else:
-            raise
-
-
-class PermanentRedirectException(Exception):
-    """ Raised on a permanent redirect, if it should not be followed """
-
-
-class HeadRequest(urllib.request.Request):
-    def get_method(self):
-        return "HEAD"
-
-
-class RedirectCollector(urllib.request.HTTPRedirectHandler):
-    """Collects all seen (intermediate) redirects for a HTTP request"""
-
-    def __init__(self, *args, **kargs):
-        self.urls = []
-        super(RedirectCollector, self).__init__(*args, **kwargs)
-
-    def http_error_301(self, req, fp, code, msg, hdrs):
-
-        self.permanent_redirect = hdrs['Location']
-        return True
-
-    def redirect_request(self, req, fp, code, msg, hdrs, newurl):
-
-        # automatically follow non-permanent redirects
-        if code in (302, 303):
-            self.urls.append(newurl)
-            return urllib.request.HTTPRedirectHandler.redirect_request(self, req, fp, code, msg, hdrs, newurl)
-
-        # record permanent redirects but don't follow
-        elif code == 301:
-            self.permanent_redirect = newurl
-            return None
-
-
-    def get_redirects(self):
-        """ Returns the complete redirect chain, starting from url """
-
-        urls = list(map(basic_sanitizing, self.urls))
-
-        # include un-sanitized URL for easy matching of
-        #response to request URLs
-        if urls[0] != self.url:
-            urls.insert(0, self.url)
-
-        return urls
-
-
-def get_redirect_chain(url):
-    collector = RedirectCollector(url)
-    request = HeadRequest(url)
-    request.add_header('User-Agent', USER_AGENT)
-    opener = urllib.request.build_opener(collector)
-    r = opener.open(request)
-
-    urls = collector.get_redirects()
-    if collector.permanent_redirect:
-        urls.append(collector.permanent_redirect)
-
-    return urls
+    return requests.get(url, headers=headers)
 
 
 def basic_sanitizing(url):

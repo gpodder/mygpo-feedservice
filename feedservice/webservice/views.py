@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 #
 
-import urllib.request, urllib.parse, urllib.error
+import urllib.parse
 import time
 import email.utils
 import cgi

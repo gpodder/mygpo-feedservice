@@ -18,7 +18,7 @@
 #
 
 import re
-import urllib.request, urllib.parse, urllib.error
+import urllib.parse
 
 from urllib.parse import parse_qs
 

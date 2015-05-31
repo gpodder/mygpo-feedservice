@@ -3,7 +3,7 @@
 #
 
 import logging
-import urllib.request, urllib.error, urllib.parse
+import urllib.error
 import http.client
 import socket
 

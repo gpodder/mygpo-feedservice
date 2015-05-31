@@ -8,11 +8,11 @@ class Parser(object):
         self.resp = resp
 
     def get_etag(self):
-        return self.resp.info().getheader('etag')
+        return self.resp.headers.get('etag')
 
     def get_last_modified(self):
-        return self.resp.info().getheader('last-modified')
+        return self.resp.headers.get('last-modified')
 
     def get_new_location(self):
-        if self.resp.code == 301 and self.url != self.resp.url:
+        if self.resp.status_code == 301 and self.url != self.resp.url:
             return self.resp.url
