@@ -95,6 +95,8 @@ DATABASES = {'default': dj_database_url.config()}
 
 SOUNDCLOUD_CONSUMER_KEY = os.getenv('MYGPOFS_SOUNDCLOUD_CONSUMER_KEY', '')
 
+YOUTUBE_API_KEY = os.getenv('YOUTUBE_API_KEY', '')
+
 FLATTR_THING = os.getenv('MYGPOFS_FLATTR_THING', '')
 
 ALLOWED_HOSTS = [_f for _f in os.getenv('MYGPOFS_ALLOWED_HOSTS', '').split(';') if _f]

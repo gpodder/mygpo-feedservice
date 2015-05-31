@@ -89,7 +89,6 @@ def parse_feed(feed_url, text_processor, mod_since_utc=None):
 
     try:
         resp = fetch_url(feed_url, mod_since_utc)
-        assert resp
 
     except NotModified:
         return None
