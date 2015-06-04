@@ -21,6 +21,7 @@ import re
 import json
 
 from urllib.parse import parse_qs, unquote
+import urllib.error
 
 from django.conf import settings
 
@@ -58,7 +59,10 @@ class YoutubeParser(Feedparser):
         return [self._orig_url, self._new_url]
 
     def get_logo_url(self):
-        return get_real_cover(self._orig_url)
+        try:
+            return get_real_cover(self._orig_url)
+        except urllib.error.HTTPError:
+            return None
 
     def get_podcast_types(self):
         return ["video"]
