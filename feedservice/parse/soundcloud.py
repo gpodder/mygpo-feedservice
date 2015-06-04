@@ -48,7 +48,7 @@ class SoundcloudUser(object):
             % (self.username, settings.SOUNDCLOUD_CONSUMER_KEY)
 
         resp = fetch_url(json_url)
-        user_info = json.loads(resp.read())
+        user_info = json.loads(resp.content)
         return user_info.get('avatar_url', None)
 
     def get_tracks(self, feed):
@@ -66,8 +66,8 @@ class SoundcloudUser(object):
                    }
 
         res = fetch_url(json_url)
-        tracks = (track for track in json.loads(res.read())
-                  if track['downloadable'])
+        response = json.loads(res.content)
+        tracks = (track for track in response if track['downloadable'])
 
         for track in tracks:
             # Prefer stream URL (MP3), fallback to download URL
@@ -129,7 +129,7 @@ class SoundcloudUser(object):
         parsed with this function (2009/11/03 13:37:00).
         """
         m = re.match(r'(\d{4})/(\d{2})/(\d{2}) (\d{2}):(\d{2}):(\d{2})', s)
-        return time.mktime([int(x) for x in m.groups()]+[0, 0, -1])
+        return time.mktime(tuple([int(x) for x in m.groups()]+[0, 0, -1]))
 
 
 class SoundcloudParser(Feedparser):
@@ -220,6 +220,8 @@ class SoundcloudEpisodeParser(FeedparserEpisodeParser):
 
     def get_files(self):
         url = self.entry.get('url', None)
+        # we don't want to leak the consumer key
+        url = url.replace(settings.SOUNDCLOUD_CONSUMER_KEY, '')
         mimetype = get_mimetype(self.entry.get('mimetype', None), url)
         filesize = self.entry.get('length', None)
 
