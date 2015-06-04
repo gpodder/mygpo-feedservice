@@ -10,7 +10,7 @@ import json
 
 from django.http import HttpResponse
 from django.shortcuts import render
-from django.contrib.sites.models import get_current_site
+from django.contrib.sites.requests import RequestSite
 from django.views.generic.base import View
 from django.views.generic import TemplateView
 from django.conf import settings
@@ -106,7 +106,7 @@ class ParseView(View):
             pretty_json = cgi.escape(pretty_json)
             response = render(request, 'pretty_response.html', {
                     'response': pretty_json,
-                    'site': get_current_site(request),
+                    'site': RequestSite(request),
                     'flattr_thing': settings.FLATTR_THING,
                 })
 
