@@ -130,3 +130,6 @@ LOGGING = {
         },
     }
 }
+
+
+EMAIL_BACKEND = os.getenv('EMAIL_BACKEND', 'django.core.mail.backends.smtp.EmailBackend')
