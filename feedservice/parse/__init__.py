@@ -7,7 +7,7 @@ import urllib.error
 import http.client
 import socket
 
-from feedservice.parse.models import Feed
+from feedservice.parse.models import Feed, ParserException
 from feedservice.utils import fetch_url, NotModified
 
 
@@ -89,14 +89,13 @@ def parse_feed(feed_url, text_processor, mod_since_utc=None):
 
     try:
         resp = fetch_url(feed_url, mod_since_utc)
+        parser = parser_cls(feed_url, resp, text_processor=text_processor)
 
     except NotModified:
         return None
 
     except (http.client.HTTPException, urllib.error.URLError, urllib.error.HTTPError,
-            ValueError, socket.error) as ex:
-        raise FetchFeedException(ex)
-
-    parser = parser_cls(feed_url, resp, text_processor=text_processor)
+            ValueError, socket.error, ParserException) as ex:
+        raise FetchFeedException(ex) from ex
 
     return parser.get_feed()

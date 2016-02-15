@@ -48,6 +48,9 @@ class Feedparser(Parser):
             raise FeedparserError('malformed feed, or no feed at all: %s' %
                                   (str(saxe)))
 
+        except requests.exceptions.RequestException as re:
+            raise FeedparserError('Error fetching feed') from re
+
         self.text_processor = text_processor
 
     @classmethod
