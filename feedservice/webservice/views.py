@@ -36,7 +36,8 @@ class ParseView(View):
 
     def get(self, request):
 
-        urls = list(map(urllib.parse.unquote, request.REQUEST.getlist('url')))
+        urls = request.GET.getlist('url') + request.POST.getlist('url')
+        urls = list(map(urllib.parse.unquote, urls))
 
         parse_args = dict(
             inline_logo = request.GET.get('inline_logo', default=0),
