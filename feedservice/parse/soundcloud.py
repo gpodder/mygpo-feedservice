@@ -32,8 +32,13 @@ from django.conf import settings
 
 from feedservice.parse.models import Feed, Episode, File
 from feedservice.parse.feed import Feedparser, FeedparserEpisodeParser
+from feedservice.parse.models import ParserException
 from feedservice.parse.mimetype import get_mimetype
 from feedservice.utils import json, fetch_url
+
+
+class SoundcloudError(ParserException):
+    """ General Exception raised by the Soundcloud parser """
 
 
 class SoundcloudUser(object):
@@ -67,6 +72,8 @@ class SoundcloudUser(object):
 
         res = fetch_url(json_url)
         response = json.loads(res.content)
+
+        self._check_error(response)
         tracks = (track for track in response if track['downloadable'])
 
         for track in tracks:
@@ -86,6 +93,15 @@ class SoundcloudUser(object):
                 'guid': track.get('permalink', track.get('id')),
                 'pubDate': self.parsedate(track.get('created_at', None)),
             }
+
+    def _check_error(self, response):
+        if 'errors' not in response:
+            return
+
+        errors = response['errors']
+        msg = ';'.join(err['error_message'] for err in errors)
+        raise SoundcloudError(msg)
+
 
     @staticmethod
     def get_param(s, param='filename', header='content-disposition'):

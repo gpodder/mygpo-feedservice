@@ -90,6 +90,7 @@ def parse_feed(feed_url, text_processor, mod_since_utc=None):
     try:
         resp = fetch_url(feed_url, mod_since_utc)
         parser = parser_cls(feed_url, resp, text_processor=text_processor)
+        return parser.get_feed()
 
     except NotModified:
         return None
@@ -97,5 +98,3 @@ def parse_feed(feed_url, text_processor, mod_since_utc=None):
     except (http.client.HTTPException, urllib.error.URLError, urllib.error.HTTPError,
             ValueError, socket.error, ParserException) as ex:
         raise FetchFeedException(ex) from ex
-
-    return parser.get_feed()
