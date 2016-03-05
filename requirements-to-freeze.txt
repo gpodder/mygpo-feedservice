@@ -1,0 +1,12 @@
+Django>=1.9.3,<1.10
+Pillow
+dj-database-url
+dj-static
+envdir
+feedparser
+gunicorn
+html2text
+psycopg2
+requests[security]
+simplejson
+static3
