@@ -13,7 +13,6 @@ def bool_env(val, default):
 
 
 DEBUG = bool_env('MYGPOFS_DEBUG', True)
-TEMPLATE_DEBUG = DEBUG
 
 ADMINS = (
     ('Stefan Kögl', 'stefan@skoegl.net'),
@@ -58,11 +57,6 @@ STATICFILES_DIRS = (
 # Make this unique, and don't share it with anybody.
 SECRET_KEY = os.getenv('MYGPOFS_SECRET_KEY', '')
 
-# List of callables that know how to import templates from various sources.
-TEMPLATE_LOADERS = (
-    'django.template.loaders.app_directories.Loader',
-)
-
 MIDDLEWARE_CLASSES = (
     'django.middleware.common.CommonMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -73,8 +67,16 @@ ROOT_URLCONF = 'feedservice.urls'
 
 WSGI_APPLICATION = 'feedservice.wsgi.application'
 
-TEMPLATE_DIRS = (
-)
+
+TEMPLATES = [
+    {
+        'BACKEND': 'django.template.backends.django.DjangoTemplates',
+        'APP_DIRS': True,
+        'OPTIONS': {
+            'debug': DEBUG,
+        },
+    }
+]
 
 INSTALLED_APPS = (
     'django.contrib.auth',
