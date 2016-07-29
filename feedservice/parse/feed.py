@@ -250,11 +250,17 @@ class FeedparserEpisodeParser(object):
             return None
 
         try:
-            return int(time.mktime(self.entry.published_parsed))
+            value = int(time.mktime(self.entry.published_parsed))
 
         except (ValueError, OverflowError):
             # dates before 1970 cause OverflowError
             return None
+
+        # there were no podcasts released before timestamp 0
+        if value <= 0:
+            return None
+
+        return value
 
     def get_files(self):
         """Get the download / episode URL of a feedparser entry"""
