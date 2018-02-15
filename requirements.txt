@@ -11,7 +11,7 @@ feedparser==5.2.1
 gunicorn==19.7.1
 html2text==2018.1.9
 idna==2.6
-olefile==0.44
+olefile==0.45.1
 Pillow==5.0.0
 psycopg2==2.7.4
 pycparser==2.18
