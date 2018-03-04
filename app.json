@@ -1,0 +1,36 @@
+{
+  "name": "mygpo-feedservice",
+  "description": "gpodder.net Feed-Service",
+  "scripts": {},
+  "env": {
+    "MYGPOFS_ALLOWED_HOSTS": {
+      "required": true
+    },
+    "MYGPOFS_DEBUG": "True",
+    "MYGPOFS_FLATTR_THING": {
+      "required": true
+    },
+    "MYGPOFS_SECRET_KEY": {
+      "generator": "secret"
+    },
+    "MYGPOFS_SOUNDCLOUD_CONSUMER_KEY": {
+      "required": true
+    },
+    "YOUTUBE_API_KEY": {
+      "required": true
+    }
+  },
+  "formation": {
+    "web": {
+      "quantity": 1
+    }
+  },
+  "addons": [
+    "heroku-postgresql:hobby-dev"
+  ],
+  "buildpacks": [
+    {
+      "url": "heroku/python"
+    }
+  ]
+}
