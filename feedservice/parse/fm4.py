@@ -86,7 +86,7 @@ class FM4OnDemandPlaylistParser(Feedparser):
         self.category = self.get_category(feed_url)
         # TODO: Use proper caching of contents with support for
         #       conditional GETs (If-Modified-Since, ETag, ...)
-        self.data = minidom.parseString(resp.read())
+        self.data = minidom.parseString(resp.text)
         self.playlist = self.data.getElementsByTagName('playlist')[0]
 
         super(FM4OnDemandPlaylistParser, self).__init__(
