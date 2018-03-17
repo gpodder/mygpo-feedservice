@@ -36,6 +36,9 @@ from feedservice.parse.models import ParserException
 from feedservice.parse.mimetype import get_mimetype
 from feedservice.utils import json, fetch_url
 
+import logging
+logger = logging.getLogger(__name__)
+
 
 class SoundcloudError(ParserException):
     """ General Exception raised by the Soundcloud parser """
@@ -49,7 +52,7 @@ class SoundcloudUser(object):
         key = ':'.join((self.username, 'avatar_url'))
 
         image = None
-        json_url = 'http://api.soundcloud.com/users/%s.json?consumer_key=%s' \
+        json_url = 'https://api.soundcloud.com/users/%s.json?consumer_key=%s' \
             % (self.username, settings.SOUNDCLOUD_CONSUMER_KEY)
 
         resp = fetch_url(json_url)
@@ -62,37 +65,63 @@ class SoundcloudUser(object):
         The generator will give you a dictionary for every
         track it can find for its user."""
 
-        json_url = 'http://api.soundcloud.com/users/%(user)s/%(feed)s.json?' \
-                   'filter=downloadable&consumer_key=%(consumer_key)s' % \
-                   {
-                       "user": self.username,
-                       "feed": feed,
-                       "consumer_key": settings.SOUNDCLOUD_CONSUMER_KEY
-                   }
+        json_url = 'https://api.soundcloud.com/users/%(user)s/%(feed)s.json?filter=downloadable&consumer_key=%(consumer_key)s&limit=200' \
+                % {
+            "user":self.get_user_id(),
+            "feed":feed,
+            "consumer_key": settings.SOUNDCLOUD_CONSUMER_KEY
+        }
 
-        res = fetch_url(json_url)
-        response = json.loads(res.content)
+        logger.debug("loading %s", json_url)
+
+        response = fetch_url(json_url)
+        json_tracks = json.loads(response.content)
 
         self._check_error(response)
-        tracks = (track for track in response if track['downloadable'])
+
+        tracks = [track for track in json_tracks if track['downloadable']]
+        total_count = len(tracks) + len([track for track in json_tracks
+                                          if not track['downloadable']])
+
+        if len(tracks) == 0 and total_count > 0:
+            logger.warn("Download of all %i %s of user %s is disabled" %
+                        (total_count, feed, self.username))
+        else:
+            logger.warn("%i/%i downloadable tracks for user %s %s feed" %
+                        (len(tracks), total_count, self.username, feed))
 
         for track in tracks:
             # Prefer stream URL (MP3), fallback to download URL
             url = track.get('stream_url', track['download_url']) + \
                 '?consumer_key=%(consumer_key)s' \
-                % {'consumer_key': settings.SOUNDCLOUD_CONSUMER_KEY}
+                % { 'consumer_key': settings.SOUNDCLOUD_CONSUMER_KEY }
+
+            filesize, filetype, filename = None, None, None
+            if url not in self.cache:
+                filesize, filetype, filename = get_metadata(url)
 
             yield {
-                'title': track.get('title',
-                                   track.get('permalink', 'Unknown track')),
-                'link': track.get('permalink_url',
-                                  'http://soundcloud.com/'+self.username),
-                'description': track.get('description',
-                                         'No description available'),
+                'title': track.get('title', track.get('permalink')) or _('Unknown track'),
+                'link': track.get('permalink_url') or 'https://soundcloud.com/' + self.username,
+                'description': track.get('description') or _('No description available'),
                 'url': url,
+                'file_size': int(filesize),
+                'mime_type': filetype,
                 'guid': track.get('permalink', track.get('id')),
-                'pubDate': self.parsedate(track.get('created_at', None)),
+                'published': soundcloud_parsedate(track.get('created_at', None)),
             }
+
+    def get_user_info(self):
+        key = ':'.join((self.username, 'user_info'))
+
+        json_url = 'https://api.soundcloud.com/users/%s.json?consumer_key=%s' % (self.username, settings.SOUNDCLOUD_CONSUMER_KEY)
+        user_info = json.loads(fetch_url(json_url).text)
+
+        return user_info
+
+    def get_user_id(self):
+        user_info = self.get_user_info()
+        return user_info.get('id', None)
 
     def _check_error(self, response):
         if 'errors' not in response:
@@ -149,7 +178,7 @@ class SoundcloudUser(object):
 
 
 class SoundcloudParser(Feedparser):
-    URL_REGEX = re.compile('http://([a-z]+\.)?soundcloud\.com/([^/]+)$', re.I)
+    URL_REGEX = re.compile('https?://([a-z]+\.)?soundcloud\.com/([^/]+)$', re.I)
 
     @classmethod
     def handles_url(cls, url):
@@ -170,7 +199,7 @@ class SoundcloudParser(Feedparser):
         return self.sc_user.get_coverart()
 
     def get_link(self):
-        return 'http://soundcloud.com/%s' % self.username
+        return 'https://soundcloud.com/%s' % self.username
 
     def get_description(self):
         return 'Tracks published by %s on Soundcloud.' % self.username
@@ -187,7 +216,7 @@ class SoundcloudParser(Feedparser):
 
 class SoundcloudFavParser(SoundcloudParser):
     URL_REGEX = re.compile(
-        'http://([a-z]+\.)?soundcloud\.com/([^/]+)/favorites', re.I)
+        'https?://([a-z]+\.)?soundcloud\.com/([^/]+)/favorites', re.I)
 
     def __init__(self, *args, **kwargs):
         super(SoundcloudFavParser, self).__init__(*args, **kwargs)
@@ -200,7 +229,7 @@ class SoundcloudFavParser(SoundcloudParser):
         return '%s\'s favorites on Soundcloud' % self.username
 
     def get_link(self):
-        return 'http://soundcloud.com/%s/favorites' % self.username
+        return 'https://soundcloud.com/%s/favorites' % self.username
 
     def get_description(self):
         return 'Tracks favorited by %s on Soundcloud.' % self.username
