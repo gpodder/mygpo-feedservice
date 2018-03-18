@@ -29,12 +29,13 @@ import email
 import email.header
 
 from django.conf import settings
+from django.utils.translation import gettext as _
 
 from feedservice.parse.models import Feed, Episode, File
 from feedservice.parse.feed import Feedparser, FeedparserEpisodeParser
 from feedservice.parse.models import ParserException
 from feedservice.parse.mimetype import get_mimetype
-from feedservice.utils import json, fetch_url
+from feedservice.utils import json, requests
 
 import logging
 logger = logging.getLogger(__name__)
@@ -55,8 +56,7 @@ class SoundcloudUser(object):
         json_url = 'https://api.soundcloud.com/users/%s.json?consumer_key=%s' \
             % (self.username, settings.SOUNDCLOUD_CONSUMER_KEY)
 
-        resp = fetch_url(json_url)
-        user_info = json.loads(resp.content)
+        user_info = requests.get(json_url).json()
         return user_info.get('avatar_url', None)
 
     def get_tracks(self, feed):
@@ -74,8 +74,8 @@ class SoundcloudUser(object):
 
         logger.debug("loading %s", json_url)
 
-        response = fetch_url(json_url)
-        json_tracks = json.loads(response.content)
+        response = requests.get(json_url)
+        json_tracks = response.json()
 
         self._check_error(response)
 
@@ -96,9 +96,7 @@ class SoundcloudUser(object):
                 '?consumer_key=%(consumer_key)s' \
                 % { 'consumer_key': settings.SOUNDCLOUD_CONSUMER_KEY }
 
-            filesize, filetype, filename = None, None, None
-            if url not in self.cache:
-                filesize, filetype, filename = get_metadata(url)
+            filesize, filetype, filename = self.get_metadata(url)
 
             yield {
                 'title': track.get('title', track.get('permalink')) or _('Unknown track'),
@@ -108,14 +106,14 @@ class SoundcloudUser(object):
                 'file_size': int(filesize),
                 'mime_type': filetype,
                 'guid': track.get('permalink', track.get('id')),
-                'published': soundcloud_parsedate(track.get('created_at', None)),
+                'published': self.parsedate(track.get('created_at', None)),
             }
 
     def get_user_info(self):
         key = ':'.join((self.username, 'user_info'))
 
         json_url = 'https://api.soundcloud.com/users/%s.json?consumer_key=%s' % (self.username, settings.SOUNDCLOUD_CONSUMER_KEY)
-        user_info = json.loads(fetch_url(json_url).text)
+        user_info = requests.get(json_url).json()
 
         return user_info
 
@@ -162,8 +160,8 @@ class SoundcloudUser(object):
         metadata via the HTTP header fields.
         """
 
-        res = fetch_url(url, headers_only=True)
-        return (res.length, res.content_type,
+        res = requests.head(url)
+        return (res.headers['Content-Length'], res.headers['Content-Type'],
                 os.path.basename(os.path.dirname(res.url)))
 
     @staticmethod
@@ -273,4 +271,8 @@ class SoundcloudEpisodeParser(FeedparserEpisodeParser):
         yield File([url], mimetype, filesize)
 
     def get_timestamp(self):
-        return int(self.entry.get('pubDate', None))
+        pd = self.entry.get('pubDate', None)
+        try:
+            return int(pd)
+        except TypeError:
+            return None

@@ -35,7 +35,16 @@ from urllib.request import (build_opener, HTTPPasswordMgrWithDefaultRealm,
 
 unicode = str
 
-USER_AGENT = 'mygpo-feedservice +http://feeds.gpodder.net/'
+
+def _get_requests_defaults():
+    s = requests.Session()
+    s.headers.update({
+        'User-Agent': 'mygpo-feedservice +http://feeds.gpodder.net/',
+    })
+    return s
+
+
+requests = _get_requests_defaults()
 
 
 try:
@@ -183,7 +192,7 @@ def fetch_url(url, mod_since_utc=None):
     headers = {}
 
     # TODO: how to handle redirect in requests?
-    headers['User-Agent'] = USER_AGENT
+    headers['User-Agent'] = ''
 
     if mod_since_utc:
         headers['If-Modified-Since'] = mod_since_utc
@@ -301,33 +310,6 @@ def http_request(url, method='HEAD'):
     start = len(scheme) + len('://') + len(netloc)
     conn.request(method, url[start:])
     return conn.getresponse()
-
-
-def urlopen(url, headers=None, data=None, timeout=None):
-    """
-    An URL opener with the User-agent set to gPodder (with version)
-    """
-    username, password = username_password_from_url(url)
-    if username is not None or password is not None:
-        url = url_strip_authentication(url)
-        password_mgr = HTTPPasswordMgrWithDefaultRealm()
-        password_mgr.add_password(None, url, username, password)
-        handler = HTTPBasicAuthHandler(password_mgr)
-        opener = build_opener(handler)
-    else:
-        opener = build_opener()
-
-    if headers is None:
-        headers = {}
-    else:
-        headers = dict(headers)
-
-    headers.update({'User-agent': USER_AGENT})
-    request = Request(url, data=data, headers=headers)
-    if timeout is None:
-        return opener.open(request)
-    else:
-        return opener.open(request, timeout=timeout)
 
 
 def username_password_from_url(url):

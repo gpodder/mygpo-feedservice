@@ -255,7 +255,7 @@ def get_real_channel_url(url):
 def get_real_cover(url):
     def return_user_cover(url, channel):
         api_url = 'http://gdata.youtube.com/feeds/api/users/{0}?v=2'.format(channel)
-        data = util.urlopen(api_url).read().decode('utf-8')
+        data = requests.get(api_url).text
         m = re.search('<media:thumbnail url=[\'"]([^\'"]+)[\'"]/>', data)
         if m is not None:
             logger.debug('YouTube userpic for %s is: %s', url, m.group(1))
@@ -266,8 +266,8 @@ def get_real_cover(url):
     return for_each_feed_pattern(return_user_cover, url, None)
 
 def get_channels_for_user(username, api_key_v3):
-    stream = util.urlopen('{0}/channels?forUsername={1}&part=id&key={2}'.format(V3_API_ENDPOINT, username, api_key_v3))
-    data = json.loads(stream.read().decode('utf-8'))
+    stream = requests.get('{0}/channels?forUsername={1}&part=id&key={2}'.format(V3_API_ENDPOINT, username, api_key_v3))
+    data = stream.json()
     return ['{0}?channel_id={1}'.format(CHANNEL_VIDEOS_XML, item['id']) for item in data['items']]
 
 
