@@ -8,7 +8,7 @@ dj-static==0.0.6
 Django==2.0.3
 envdir==1.0.1
 feedparser==5.2.1
-gunicorn==19.7.1
+gunicorn==19.8.0
 html2text==2018.1.9
 idna==2.6
 olefile==0.44
