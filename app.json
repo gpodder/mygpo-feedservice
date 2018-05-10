@@ -7,9 +7,6 @@
       "required": true
     },
     "MYGPOFS_DEBUG": "True",
-    "MYGPOFS_FLATTR_THING": {
-      "required": true
-    },
     "MYGPOFS_SECRET_KEY": {
       "generator": "secret"
     },
