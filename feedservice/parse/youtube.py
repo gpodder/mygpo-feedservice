@@ -27,7 +27,7 @@ from django.conf import settings
 
 from feedservice.parse.feed import Feedparser, FeedparserEpisodeParser
 from feedservice.parse.models import ParserException
-from feedservice.utils import remove_html_tags, fetch_url
+from feedservice.utils import remove_html_tags, fetch_url, requests
 
 import feedservice.utils as util  # for gpodder.youtube compat
 
