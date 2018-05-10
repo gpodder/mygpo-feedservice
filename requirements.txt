@@ -16,7 +16,7 @@ Pillow==5.0.0
 psycopg2==2.7.4
 pycparser==2.18
 pyOpenSSL==17.5.0
-pytz==2018.3
+pytz==2018.4
 requests==2.18.4
 simplejson==3.13.2
 six==1.11.0
