@@ -25,11 +25,6 @@ class IndexView(TemplateView):
 
     template_name = 'index.html'
 
-    def get(self, request):
-        return self.render_to_response({
-            'flattr_thing': settings.FLATTR_THING,
-        })
-
 
 class ParseView(View):
     """ Parser Endpoint """
@@ -108,7 +103,6 @@ class ParseView(View):
             response = render(request, 'pretty_response.html', {
                     'response': pretty_json,
                     'site': RequestSite(request),
-                    'flattr_thing': settings.FLATTR_THING,
                 })
 
         response['Content-Type'] = content_type

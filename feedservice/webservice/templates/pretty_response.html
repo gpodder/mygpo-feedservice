@@ -11,13 +11,6 @@
  <body onload="prettyPrint()">
   <h1>HTML Response</h1>
   <p>This response is HTML formatted. To get just the JSON data for processing in your client, <a href="/#accept">send the HTTP Header <em>Accept: application/json</em></a>. <a href="{% url "index" %}">Back to the Documentation</a></p>
-  <p>
-   {% if flattr_thing %}
-    <a href="http://flattr.com/thing/{{ flattr_thing }}" target="_blank">
-     <img src="http://api.flattr.com/button/flattr-badge-large.png" alt="Flattr this" title="Flattr this" border="0" />
-    </a>
-   {% endif %}
-  </p>
   {% autoescape off %}
    <pre class="prettyprint">{{ response }}</pre>
   {% endautoescape %}
