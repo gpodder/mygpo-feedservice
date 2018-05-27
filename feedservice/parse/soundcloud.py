@@ -77,7 +77,7 @@ class SoundcloudUser(object):
         response = requests.get(json_url)
         json_tracks = response.json()
 
-        self._check_error(response)
+        self._check_error(json_tracks)
 
         tracks = [track for track in json_tracks if track['downloadable']]
         total_count = len(tracks) + len([track for track in json_tracks
