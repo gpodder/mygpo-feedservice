@@ -10,7 +10,7 @@ envdir==1.0.1
 feedparser==5.2.1
 gunicorn==19.9.0
 html2text==2018.1.9
-idna==2.6
+idna==2.7
 olefile==0.44
 Pillow==5.2.0
 psycopg2==2.7.5
