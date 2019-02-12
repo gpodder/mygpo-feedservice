@@ -15,7 +15,7 @@ olefile==0.44
 Pillow==5.2.0
 psycopg2==2.7.5
 pycparser==2.18
-pyOpenSSL==17.5.0
+pyOpenSSL==19.0.0
 pytz==2018.3
 requests==2.19.1
 simplejson==3.16.0
