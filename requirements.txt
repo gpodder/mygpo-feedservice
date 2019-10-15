@@ -22,3 +22,4 @@ simplejson==3.16.0
 six==1.11.0
 static3==0.7.0
 urllib3==1.22
+sentry-sdk==0.12.3
