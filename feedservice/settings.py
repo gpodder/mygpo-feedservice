@@ -133,3 +133,20 @@ LOGGING = {
 
 
 EMAIL_BACKEND = os.getenv('EMAIL_BACKEND', 'django.core.mail.backends.smtp.EmailBackend')
+
+
+### Sentry
+
+try:
+    import sentry_sdk
+    from sentry_sdk.integrations.django import DjangoIntegration
+
+    # Sentry Data Source Name (DSN)
+    sentry_dsn = os.getenv('SENTRY_DSN', '')
+    if not sentry_dsn:
+        raise ValueError('Could not set up sentry because ' 'SENTRY_DSN is not set')
+
+    sentry_sdk.init(dsn=sentry_dsn, integrations=[DjangoIntegration()], send_default_pii=True)
+
+except (ImportError, ValueError):
+    pass
