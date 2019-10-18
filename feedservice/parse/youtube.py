@@ -20,7 +20,7 @@
 import re
 import json
 
-from urllib.parse import parse_qs, unquote
+from urllib.parse import parse_qs, unquote, urlparse
 import urllib.error
 
 from django.conf import settings
@@ -35,6 +35,35 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+# todo: actually parse the feed and look for the <link rel=canonical"> tag
+RE_CANONICAL = 'rel="canonical" href="([^"]+)'
+
+RE_CHANNEL = re.compile('channel/([_a-zA-Z0-9-]+)')
+RE_PLAYLIST = re.compile(r'playlist\?list=([_a-zA-Z0-9-]+)')
+
+CHANNEL_FEED = 'https://www.youtube.com/feeds/videos.xml?channel_id={fid}'
+PLAYLIST_FEED = 'https://www.youtube.com/feeds/videos.xml?playlist_id={fid}'
+
+FEED_TYPES = {
+    RE_CHANNEL: CHANNEL_FEED,
+    RE_PLAYLIST: PLAYLIST_FEED,
+}
+
+# old URLs that don't work anymore
+OLD_USER_URLS = [
+    r'http[s]?://(?:[a-z]+\.)?youtube.com/rss/user/([A-Za-z0-9-]+)/videos\.rss',
+    r'http[s]?://(?:[a-z]+\.)?youtube\.com/profile?user=([A-Za-z0-9-]+)',
+    r'http[s]?://gdata.youtube.com/feeds/users/([^/]+)/uploads',
+    r'http[s]?://gdata.youtube.com/feeds/base/users/([^/]+)/uploads',
+]
+
+NEW_USER_URLS = 'https://www.youtube.com/user/{username}'
+
+OLD_ID_URLS = [
+    r'http[s]?://gdata.youtube.com/feeds/api/users/([_a-zA-Z0-9-]+)/uploads',
+]
+
+
 class YouTubeError(ParserException):
     pass
 
@@ -43,26 +72,59 @@ class YoutubeParser(Feedparser):
 
     @classmethod
     def handles_url(cls, url):
-        return for_each_feed_pattern(lambda *args: True, url, False)
+        result = urlparse(url)
+        if result.netloc == 'youtube.com':
+            return True
+
+        if result.netloc.endswith('.youtube.com'):
+            return True
+
+        return False
 
     def __init__(self, url, resp, text_processor=None):
         self._orig_url = url
-        self._new_url = resolve_v3_url(url, settings.YOUTUBE_API_KEY)
+        self._current_url = self.get_current_url(self._orig_url)
+        self._new_url = self.parse_video_page(self._current_url)
         super().__init__(self._new_url, resp, text_processor=text_processor)
-        _, self.username = for_each_feed_pattern(
-            lambda url, channel: (url, channel), url, (None, None))
 
-    def get_description(self):
-        return 'Youtube uploads by %s' % self.username
+    def get_current_url(self, url):
+        # try to match for old URLs that already contain the video ID
+        for oldurl in OLD_ID_URLS:
+            m = re.match(oldurl, url)
+            if m:
+                url = CHANNEL_FEED.format(fid=m.group(1))
+                break
+
+        # try to match for old URLs that contain a username
+        for oldurl in OLD_USER_URLS:
+            m = re.match(oldurl, url)
+            if m:
+                url = NEW_USER_URLS.format(username=m.group(1))
+                break
+
+        return url
+
+    def parse_video_page(self, url):
+        # by now we should have a new (working) URL, let's fetch it
+        r = requests.get(url)
+        m = re.search(RE_CANONICAL, r.text)
+        if not m:
+            # URL didn't contain a canonical link, so we can't work with it
+            return url
+        canonical_url = m.group(1)
+
+        # see what kind of canonical link we found
+        for regex, feed in FEED_TYPES.items():
+            m = regex.search(canonical_url)
+            if m:
+                feed_url = feed.format(fid=m.group(1))
+                return feed_url
 
     def get_urls(self):
-        return [self._orig_url, self._new_url]
+        return [self._orig_url, self._current_url, self._new_url]
 
     def get_logo_url(self):
-        try:
-            return get_real_cover(self._orig_url)
-        except urllib.error.HTTPError:
-            return None
+        return None
 
     def get_podcast_types(self):
         return ["video"]
@@ -81,10 +143,14 @@ class YoutubeEpisodeParser(FeedparserEpisodeParser):
                 continue
 
             url = link['href']
-            #dl_url = get_real_download_url(url)
+            try:
+                dl_url = get_real_download_url(url)
+            except YouTubeError:
+                dl_url = None
 
             if is_video_link(url):
-                #yield ([dl_url], 'application/x-youtube', None)
+                if dl_url is not None:
+                  yield ([dl_url], 'application/x-youtube', None)
                 yield ([url], 'application/x-youtube', None)
 
 
@@ -136,34 +202,51 @@ def get_fmt_ids(youtube_config):
 
     return fmt_ids
 
+
+# TODO: currently not working, needs investigation
 def get_real_download_url(url, preferred_fmt_ids=None):
     if not preferred_fmt_ids:
-        preferred_fmt_ids, _, _ = formats_dict[22] # MP4 720p
+        preferred_fmt_ids, _, _ = formats_dict[22]  # MP4 720p
 
     vid = get_youtube_id(url)
     if vid is not None:
         page = None
-        url = 'http://www.youtube.com/get_video_info?&el=detailpage&video_id=' + vid
+        url = 'https://www.youtube.com/get_video_info?&el=detailpage&video_id=' + vid
 
         while page is None:
             req = util.http_request(url, method='GET')
             if 'location' in req.msg:
                 url = req.msg['location']
             else:
-                page = req.read().decode('utf-8')
+                page = req.read()
 
+        page = page.decode()
         # Try to find the best video format available for this video
         # (http://forum.videohelp.com/topic336882-1800.html#1912972)
+
         def find_urls(page):
             r4 = re.search('url_encoded_fmt_stream_map=([^&]+)', page)
             if r4 is not None:
-                fmt_url_map = unquote(r4.group(1))
+                fmt_url_map = urllib.parse.unquote(r4.group(1))
                 for fmt_url_encoded in fmt_url_map.split(','):
                     video_info = parse_qs(fmt_url_encoded)
                     yield int(video_info['itag'][0]), video_info['url'][0]
             else:
                 error_info = parse_qs(page)
-                error_message = util.remove_html_tags(error_info['reason'][0])
+                if 'reason' in error_info:
+                    error_message = util.remove_html_tags(error_info['reason'][0])
+                elif 'player_response' in error_info:
+                    player_response = json.loads(error_info['player_response'][0])
+                    if 'reason' in player_response['playabilityStatus']:
+                        error_message = util.remove_html_tags(player_response['playabilityStatus']['reason'])
+                    elif 'live_playback' in error_info:
+                        error_message = 'live stream'
+                    elif 'post_live_playback' in error_info:
+                        error_message = 'post live stream'
+                    else:
+                        error_message = ''
+                else:
+                    error_message = ''
                 raise YouTubeError('Cannot download video: %s' % error_message)
 
         fmt_id_url_map = sorted(find_urls(page), reverse=True)
@@ -172,15 +255,10 @@ def get_real_download_url(url, preferred_fmt_ids=None):
             raise YouTubeError('fmt_url_map not found for video ID "%s"' % vid)
 
         # Default to the highest fmt_id if we don't find a match below
-        _, url  = fmt_id_url_map[0]
+        _, url = fmt_id_url_map[0]
 
         formats_available = set(fmt_id for fmt_id, url in fmt_id_url_map)
         fmt_id_url_map = dict(fmt_id_url_map)
-
-        # This provides good quality video, seems to be always available
-        # and is playable fluently in Media Player
-#        if gpodder.ui.harmattan:
-#            preferred_fmt_ids = [18]
 
         for id in preferred_fmt_ids:
             id = int(id)
@@ -197,6 +275,7 @@ def get_real_download_url(url, preferred_fmt_ids=None):
                 break
 
     return url
+
 
 def get_youtube_id(url):
     r = re.compile('http[s]?://(?:[a-z]+\.)?youtube\.com/v/(.*)\.swf', re.IGNORECASE).match(url)
@@ -218,68 +297,3 @@ def is_video_link(url):
 
 def is_youtube_guid(guid):
     return guid.startswith('tag:youtube.com,2008:video:')
-
-def for_each_feed_pattern(func, url, fallback_result):
-    """
-    Try to find the username for all possible YouTube feed/webpage URLs
-    Will call func(url, channel) for each match, and if func() returns
-    a result other than None, returns this. If no match is found or
-    func() returns None, return fallback_result.
-    """
-    CHANNEL_MATCH_PATTERNS = [
-        'http[s]?://(?:[a-z]+\.)?youtube\.com/user/([a-z0-9]+)',
-        'http[s]?://(?:[a-z]+\.)?youtube\.com/profile?user=([a-z0-9]+)',
-        'http[s]?://(?:[a-z]+\.)?youtube\.com/channel/([_a-z0-9]+)',
-        'http[s]?://(?:[a-z]+\.)?youtube\.com/rss/user/([a-z0-9]+)/videos\.rss',
-        'http[s]?://gdata.youtube.com/feeds/users/([^/]+)/uploads',
-        'http[s]?://(?:[a-z]+\.)?youtube\.com/feeds/videos.xml?channel_id=([a-z0-9]+)',
-    ]
-
-    for pattern in CHANNEL_MATCH_PATTERNS:
-        m = re.match(pattern, url, re.IGNORECASE)
-        if m is not None:
-            result = func(url, m.group(1))
-            if result is not None:
-                return result
-
-    return fallback_result
-
-def get_real_channel_url(url):
-    def return_user_feed(url, channel):
-        result = 'https://gdata.youtube.com/feeds/users/{0}/uploads'.format(channel)
-        logger.debug('YouTube link resolved: %s => %s', url, result)
-        return result
-
-    return for_each_feed_pattern(return_user_feed, url, url)
-
-def get_real_cover(url):
-    def return_user_cover(url, channel):
-        api_url = 'http://gdata.youtube.com/feeds/api/users/{0}?v=2'.format(channel)
-        data = requests.get(api_url).text
-        m = re.search('<media:thumbnail url=[\'"]([^\'"]+)[\'"]/>', data)
-        if m is not None:
-            logger.debug('YouTube userpic for %s is: %s', url, m.group(1))
-            return m.group(1)
-
-        return None
-
-    return for_each_feed_pattern(return_user_cover, url, None)
-
-def get_channels_for_user(username, api_key_v3):
-    stream = requests.get('{0}/channels?forUsername={1}&part=id&key={2}'.format(V3_API_ENDPOINT, username, api_key_v3))
-    data = stream.json()
-    return ['{0}?channel_id={1}'.format(CHANNEL_VIDEOS_XML, item['id']) for item in data['items']]
-
-
-def resolve_v3_url(url, api_key_v3):
-    # Check if it's a YouTube feed, and if we have an API key, auto-resolve the channel
-    if url and api_key_v3:
-        _, user = for_each_feed_pattern(lambda url, channel: (url, channel), url, (None, None))
-        if user is not None:
-            logger.info('Getting channels for YouTube user %s', user)
-            new_urls = get_channels_for_user(user, api_key_v3)
-            logger.debug('YouTube channels retrieved: %r', new_urls)
-            if len(new_urls) == 1:
-                return new_urls[0]
-
-    return url
