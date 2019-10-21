@@ -1,1 +1,1 @@
-web: gunicorn feedservice.wsgi --workers=4
+web: gunicorn feedservice.wsgi
