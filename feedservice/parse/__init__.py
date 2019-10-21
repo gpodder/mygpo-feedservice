@@ -7,6 +7,8 @@ import urllib.error
 import http.client
 import socket
 
+import eventlet
+
 from feedservice.parse.models import Feed, ParserException
 from feedservice.utils import fetch_url, NotModified
 
@@ -94,6 +96,9 @@ def parse_feed(feed_url, text_processor, mod_since_utc=None):
 
     except NotModified:
         return None
+
+    except eventlet.timeout.Timeout as te:
+        raise FetchFeedException(f'Timeout: {te}') from te
 
     except (http.client.HTTPException, urllib.error.URLError, urllib.error.HTTPError,
             ValueError, socket.error, ParserException) as ex:

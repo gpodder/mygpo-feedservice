@@ -26,9 +26,13 @@ from html.entities import entitydefs
 import io
 import http.client as httplib
 
+from django.conf import settings
+
 import requests
 from PIL import Image, ImageDraw
 urlparse = urllib.parse
+
+import eventlet
 
 from urllib.request import (build_opener, HTTPPasswordMgrWithDefaultRealm,
     HTTPBasicAuthHandler, Request)
@@ -197,7 +201,12 @@ def fetch_url(url, mod_since_utc=None):
     if mod_since_utc:
         headers['If-Modified-Since'] = mod_since_utc
 
-    return requests.get(url, headers=headers)
+    timeout = settings.FETCH_TIMEOUT
+
+    # timeout for full download, see
+    # https://stackoverflow.com/a/22096841/693140
+    with eventlet.Timeout(timeout):
+        return requests.get(url, headers=headers)
 
 
 def basic_sanitizing(url):

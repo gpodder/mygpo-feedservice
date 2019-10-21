@@ -3,6 +3,7 @@
 
 import os, os.path
 
+
 def bool_env(val, default):
     """Replaces string based environment values with Python booleans"""
 
@@ -135,6 +136,9 @@ LOGGING = {
 EMAIL_BACKEND = os.getenv('EMAIL_BACKEND', 'django.core.mail.backends.smtp.EmailBackend')
 
 
+FETCH_TIMEOUT = int(os.getenv('FETCH_TIMEOUT', 20))
+
+
 ### Sentry
 
 try:
@@ -150,3 +154,7 @@ try:
 
 except (ImportError, ValueError):
     pass
+
+
+import eventlet
+eventlet.monkey_patch()
