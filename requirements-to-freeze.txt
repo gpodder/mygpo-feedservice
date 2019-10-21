@@ -11,3 +11,4 @@ requests[security]
 simplejson
 static3
 sentry-sdk
+eventlet
