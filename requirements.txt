@@ -20,7 +20,7 @@ pycparser==2.19
 pyOpenSSL==19.0.0
 pytz==2019.3
 requests==2.22.0
-sentry-sdk==0.13.0
+sentry-sdk==0.13.2
 simplejson==3.16.0
 six==1.12.0
 static3==0.7.0
