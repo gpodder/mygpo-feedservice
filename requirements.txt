@@ -21,7 +21,7 @@ pyOpenSSL==19.1.0
 pytz==2019.3
 requests==2.22.0
 sentry-sdk==0.13.0
-simplejson==3.16.0
-six==1.15.0
+simplejson==3.17.2
+six==1.12.0
 static3==0.7.0
 urllib3==1.25.6
