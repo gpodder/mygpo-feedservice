@@ -5,7 +5,7 @@ cryptography==3.2
 dj-database-url==0.5.0
 dj-static==0.0.6
 Django==3.0.7
-dnspython==1.16.0
+dnspython==2.0.0
 envdir==1.0.1
 eventlet==0.25.1
 feedparser==5.2.1
