@@ -7,7 +7,7 @@ dj-static==0.0.6
 Django==3.0.7
 dnspython==1.16.0
 envdir==1.0.1
-eventlet==0.25.1
+eventlet==0.30.0
 feedparser==5.2.1
 greenlet==0.4.15
 gunicorn==20.0.4
