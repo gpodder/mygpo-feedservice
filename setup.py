@@ -11,7 +11,7 @@ import glob
 PACKAGE = 'feedservice'
 SCRIPT_FILE = os.path.join(PACKAGE, '__init__.py')
 
-main_py = open(SCRIPT_FILE).read()
+main_py = open(SCRIPT_FILE, encoding='utf-8').read()
 metadata = dict(re.findall("__([a-z]+)__ = '([^']+)'", main_py))
 docstrings = re.findall('"""(.*?)"""', main_py, re.DOTALL)
 
