@@ -49,11 +49,10 @@ class ConvertMarkdown(object):
 
     def process(self, html_str):
         import html2text
-        import html.parser
 
         try:
             text = html2text.html2text(html_str)
             return text.strip()
 
-        except (TypeError, html.parser.HTMLParseError):
+        except Exception:
             return ''
