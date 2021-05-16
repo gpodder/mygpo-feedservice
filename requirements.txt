@@ -16,7 +16,7 @@ idna==2.8
 monotonic==1.5
 Pillow==8.0.1
 psycopg2==2.8.4
-pycparser==2.19
+pycparser==2.20
 pyOpenSSL==19.1.0
 pytz==2019.3
 requests==2.22.0
