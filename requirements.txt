@@ -11,7 +11,7 @@ eventlet==0.25.1
 feedparser==5.2.1
 greenlet==0.4.15
 gunicorn==20.0.4
-html2text==2019.9.26
+html2text==2020.1.16
 idna==2.8
 monotonic==1.5
 Pillow==8.0.1
