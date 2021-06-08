@@ -14,7 +14,7 @@ gunicorn==20.0.4
 html2text==2019.9.26
 idna==2.8
 monotonic==1.5
-Pillow==8.0.1
+Pillow==8.2.0
 psycopg2==2.8.4
 pycparser==2.19
 pyOpenSSL==19.1.0
